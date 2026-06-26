@@ -54,8 +54,8 @@ class TestSignatureGenerator:
 
         sig = generator.generate(agent_alpha.agent_id, metrics, run_ids)
         assert sig.agent_id == "alpha"
-        assert sig.embedding_dimension == 32
-        assert len(sig.embedding_vector) == 32
+        assert sig.embedding_dimension == 35
+        assert len(sig.embedding_vector) == 35
         assert sig.num_runs == 5
         assert sig.stability_score is not None
         assert 0.0 <= sig.stability_score <= 1.0
@@ -99,8 +99,8 @@ class TestSignatureGenerator:
 
         sig = generator.generate(agent_alpha.agent_id, metrics, run_ids)
         assert sig.metric_tensor is not None
-        assert len(sig.metric_tensor) == 32
-        assert len(sig.metric_tensor[0]) == 32
+        assert len(sig.metric_tensor) == 35
+        assert len(sig.metric_tensor[0]) == 35
 
     def test_manifold_coordinates_present(self, generator, agent_alpha):
         adapter = MockInferenceAdapter()
@@ -127,7 +127,7 @@ class TestReducibilityMask:
         sig_full = generator.generate(agent_alpha.agent_id, metrics, run_ids)
 
         # Mask out the last 13 metrics (indices 19-31)
-        mask = [True] * 19 + [False] * 13
+        mask = [True] * 19 + [False] * 16
         sig_masked = generator.generate(
             agent_alpha.agent_id, metrics, run_ids, reducibility_mask=mask,
         )
@@ -136,7 +136,7 @@ class TestReducibilityMask:
         vec_masked = np.array(sig_masked.embedding_vector)
 
         # The masked dimensions should be zero
-        for i in range(19, 32):
+        for i in range(19, 35):
             assert vec_masked[i] == 0.0, (
                 f"Masked dimension {i} should be 0.0, got {vec_masked[i]}"
             )

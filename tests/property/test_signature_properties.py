@@ -13,7 +13,7 @@ from engine.geometric.riemannian import compute_metric_tensor
 
 float_vector = st.lists(
     st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
-    min_size=3, max_size=32,
+    min_size=3, max_size=35,
 )
 
 

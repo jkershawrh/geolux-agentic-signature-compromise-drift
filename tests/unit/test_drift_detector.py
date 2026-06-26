@@ -57,7 +57,7 @@ class TestDriftDetector:
         perturbed = _make_sig("test", {"response_key": "code"})
         detector = DriftDetector()
         drift = detector.detect(baseline, perturbed)
-        assert len(drift.per_dimension_drift) == 8
+        assert len(drift.per_dimension_drift) == 9
 
     def test_significance_determined_by_thresholds(self):
         """Significance is based on distance threshold, not permutation p-value."""
