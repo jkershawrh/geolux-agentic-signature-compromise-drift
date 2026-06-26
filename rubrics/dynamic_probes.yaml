@@ -1,0 +1,54 @@
+id: dynamic_probes
+version: v0.1.0
+stage: 6
+description: Dynamic Probe Generator — randomized, adversarial probes that defeat static prompt training
+
+evaluation_dimensions:
+  template_library:
+    description: Rich template pool across all 5 probe categories
+    pass_criteria:
+      - At least 50 templates across 5 categories
+      - FACTUAL_RECALL templates with substitution pools of 10+ items
+      - REASONING_CHAIN templates with multi-step expected properties
+      - STYLE_COMPLIANCE templates with format constraints
+      - BOUNDARY_PROBE templates with edge cases and ambiguity
+      - CANARY_PROBE templates with embedded verification signals
+    current_state: red
+    test_count: 0
+
+  probe_generation:
+    description: Deterministic, seeded probe generation with balanced category coverage
+    pass_criteria:
+      - Same seed produces identical probe sets
+      - Different seeds produce different probe sets
+      - Category distribution is balanced across all categories
+      - Difficulty range filtering works correctly
+      - Single probe generation matches requested category
+      - Template substitution renders correctly
+      - Probe hashes are computed via SHA-256
+    current_state: red
+    test_count: 0
+
+  hash_exclusion:
+    description: Previously used probes can be excluded by hash
+    pass_criteria:
+      - Excluded hashes are never reused in generated probe sets
+      - Exclusion does not reduce probe count below requested amount
+      - Hash-based exclusion is deterministic
+    current_state: red
+    test_count: 0
+
+  integration_with_baseline:
+    description: Probe sets integrate with the existing signature and metric infrastructure
+    pass_criteria:
+      - ProbeSet serializes to JSON
+      - GeneratedProbe instances are valid Pydantic models
+      - Output types match domain model contracts
+      - Probes have all required fields populated
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 22
+  current_test_count: 0

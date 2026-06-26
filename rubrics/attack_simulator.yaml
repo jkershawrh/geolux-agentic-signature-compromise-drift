@@ -1,0 +1,50 @@
+id: attack_simulator
+version: v0.1.0
+stage: 11
+description: Adversarial Attack Simulator — explicitly try to defeat the detection system with 4 attack strategies and measure detection rates
+
+evaluation_dimensions:
+  metric_gaming_attack:
+    description: Metric gaming attack uses similar structural metrics but different content
+    pass_criteria:
+      - simulate_metric_gaming returns AttackResult
+      - detection_rate in [0, 1]
+      - Uses semantic analyzer to detect content difference
+      - evasion_rate = 1 - detection_rate
+    current_state: red
+    test_count: 0
+
+  prompt_mimicry_attack:
+    description: Prompt mimicry attack copies target style with subtle backdoor
+    pass_criteria:
+      - simulate_prompt_mimicry returns AttackResult
+      - detection_rate in [0, 1]
+      - Uses canary system to detect missing canaries
+      - evasion_rate = 1 - detection_rate
+    current_state: red
+    test_count: 0
+
+  gradual_drift_attack:
+    description: Gradual drift attack changes slowly to avoid threshold detection
+    pass_criteria:
+      - simulate_gradual_drift returns AttackResult
+      - detection_rate in [0, 1]
+      - Uses temporal tracker to detect drift pattern
+      - evasion_rate = 1 - detection_rate
+    current_state: red
+    test_count: 0
+
+  signature_spoofing_attack:
+    description: Signature spoofing attack manipulates inputs for desired geometry
+    pass_criteria:
+      - simulate_signature_spoofing returns AttackResult
+      - detection_rate in [0, 1]
+      - Uses authentication engine to reject impersonation
+      - evasion_rate = 1 - detection_rate
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 22
+  current_test_count: 0

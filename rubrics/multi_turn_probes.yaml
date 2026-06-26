@@ -1,0 +1,48 @@
+id: multi_turn_probes
+version: v0.1.0
+stage: 8
+description: Multi-Turn Behavioral Probes — test conversation consistency across turns
+
+evaluation_dimensions:
+  conversation_execution:
+    description: Execute multi-turn conversations and accumulate history correctly
+    pass_criteria:
+      - execute_conversation sends each template turn in sequence
+      - Message history grows with each turn (user + assistant)
+      - ConversationResult returned with all turns recorded
+      - Turns alternate user/assistant roles correctly
+    current_state: red
+    test_count: 0
+
+  memory_consistency:
+    description: Verify agent recalls facts stated in earlier turns
+    pass_criteria:
+      - Memory probe checks keyword recall across turns
+      - Keywords from early turns detected in later assistant responses
+      - Score reflects fraction of keywords successfully recalled
+    current_state: red
+    test_count: 0
+
+  instruction_persistence:
+    description: Verify agent follows persistent instructions across all turns
+    pass_criteria:
+      - Instruction persistence probe checks marker presence
+      - Marker checked in all assistant turns after the instruction
+      - Score reflects fraction of compliant turns
+    current_state: red
+    test_count: 0
+
+  behavioral_coherence:
+    description: Verify response style and length consistency across turns
+    pass_criteria:
+      - Coherence probe measures response length variance
+      - Low variance yields high coherence score
+      - Context probe checks domain keyword persistence
+      - Overall score is weighted mean of component scores
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 21
+  current_test_count: 0

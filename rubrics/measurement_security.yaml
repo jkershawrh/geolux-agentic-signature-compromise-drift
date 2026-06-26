@@ -1,0 +1,49 @@
+id: measurement_security
+version: v0.1.0
+stage: 12
+description: Measurement Security Layer — protects geometric signatures from reverse-engineering by encrypting at rest, obfuscating drift deltas, and enforcing access-controlled comparisons
+
+evaluation_dimensions:
+  signature_encryption:
+    description: Encrypt and decrypt geometric signature vectors at rest
+    pass_criteria:
+      - Encrypt/decrypt roundtrip preserves original embedding vector
+      - Encryption uses HMAC for integrity verification
+      - Wrong key causes integrity check failure
+      - Encrypted output differs from plaintext
+    current_state: red
+    test_count: 0
+
+  commitment_verification:
+    description: SHA-256 commitment hashes for tamper detection
+    pass_criteria:
+      - Commitment hash is deterministic for same input
+      - Correct vector passes verification
+      - Tampered vector fails verification
+      - Hash computed from JSON-serialized vector
+    current_state: red
+    test_count: 0
+
+  drift_obfuscation:
+    description: Add calibrated noise to drift measurements before exposure
+    pass_criteria:
+      - Obfuscated dimensions differ from raw dimensions
+      - Severity classification preserved through obfuscation
+      - Raw distance never exposed in obfuscated result
+      - Noise magnitude controlled by scale parameter
+    current_state: red
+    test_count: 0
+
+  secure_comparison:
+    description: End-to-end secure compare decrypts, detects, and obfuscates
+    pass_criteria:
+      - secure_compare returns ObfuscatedDriftResult
+      - No raw vectors leak in output
+      - Audit record logged for each operation
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 19
+  current_test_count: 0

@@ -1,0 +1,52 @@
+id: temporal_drift
+version: v0.1.0
+stage: 9
+description: Temporal Drift Tracker — sliding window analysis to detect slow drift, sudden jumps, oscillation, and other temporal patterns
+
+evaluation_dimensions:
+  sliding_windows:
+    description: Sliding window computation over distance time-series
+    pass_criteria:
+      - Windows cover the full distance array
+      - Window size is respected
+      - Each window contains mean_distance, max_distance, distance_trend
+      - Trend computed via linear regression slope
+    current_state: red
+    test_count: 0
+
+  pattern_classification:
+    description: Classify temporal drift into one of six patterns
+    pass_criteria:
+      - STABLE detected for low-variance, no-trend sequences
+      - GRADUAL_ACCUMULATION detected for monotonically increasing sequences
+      - SUDDEN_JUMP detected for sequences with outlier spikes
+      - OSCILLATION detected for high sign-change-ratio sequences
+      - MEAN_REVERSION detected for rise-then-fall sequences
+      - PERMANENT_SHIFT detected for rise-then-plateau sequences
+      - Pattern confidence in [0, 1]
+    current_state: red
+    test_count: 0
+
+  anomaly_detection:
+    description: Flag indices where distance exceeds mean + threshold * std
+    pass_criteria:
+      - Outlier indices correctly identified
+      - Threshold uses configurable sigma multiplier
+      - Returns empty list when no anomalies exist
+    current_state: red
+    test_count: 0
+
+  velocity_tracking:
+    description: Compute drift velocity and acceleration from distance series
+    pass_criteria:
+      - Velocity is mean of first differences
+      - Acceleration is mean of second differences
+      - Positive velocity for increasing distance sequences
+      - Acceleration detects rate-of-change shifts
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 21
+  current_test_count: 0
