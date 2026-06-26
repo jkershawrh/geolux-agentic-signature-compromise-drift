@@ -61,6 +61,11 @@ METRIC_DEFINITIONS: dict[MetricDimension, list[str]] = {
         "response_signature_phrases",
         "closing_pattern",
     ],
+    MetricDimension.EMBEDDING: [
+        "embedding_closing_signature",
+        "embedding_topic_adherence",
+        "embedding_response_density",
+    ],
 }
 
 ALL_METRIC_NAMES: list[str] = [

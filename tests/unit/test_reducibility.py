@@ -20,7 +20,7 @@ class TestReducibilityAnalyzer:
         metrics_list = _collect_metrics(adapter)
         analyzer = ReducibilityAnalyzer(min_samples=5)
         classifications = analyzer.analyze(metrics_list, "test")
-        assert len(classifications) == 32
+        assert len(classifications) == 35
 
     def test_too_few_samples_raises(self):
         adapter = MockInferenceAdapter()
@@ -72,7 +72,7 @@ class TestReducibilityAnalyzer:
         analyzer = ReducibilityAnalyzer(min_samples=5)
         classifications = analyzer.analyze(metrics_list, "test")
         mask = analyzer.get_reducible_mask(classifications)
-        assert len(mask) == 32
+        assert len(mask) == 35
         assert all(isinstance(m, bool) for m in mask)
 
     def test_summary_counts(self):
@@ -82,22 +82,22 @@ class TestReducibilityAnalyzer:
         classifications = analyzer.analyze(metrics_list, "test")
         summary = analyzer.summary(classifications)
         total = sum(summary.values())
-        assert total == 32
+        assert total == 35
 
     def test_compute_fisher_ratios_returns_all_metrics(self):
-        """Fisher ratios should have an entry for each of 32 metrics."""
+        """Fisher ratios should have an entry for each of 35 metrics."""
         analyzer = ReducibilityAnalyzer()
-        a = np.random.RandomState(42).rand(10, 32)
-        b = np.random.RandomState(43).rand(10, 32)
+        a = np.random.RandomState(42).rand(10, 35)
+        b = np.random.RandomState(43).rand(10, 35)
         ratios = analyzer.compute_fisher_ratios(a, b)
-        assert len(ratios) == 32
+        assert len(ratios) == 35
         assert all(v >= 0 for v in ratios.values())
 
     def test_fisher_ratio_high_for_separated_metrics(self):
         """Metrics with large mean difference and low variance should have high Fisher ratio."""
         analyzer = ReducibilityAnalyzer()
-        a = np.zeros((10, 32))
-        b = np.zeros((10, 32))
+        a = np.zeros((10, 35))
+        b = np.zeros((10, 35))
         a[:, 0] = 0.1  # metric 0: stable at 0.1 for agent A
         b[:, 0] = 0.9  # metric 0: stable at 0.9 for agent B
         a[:, 1] = np.random.RandomState(42).rand(10)  # metric 1: random noise
@@ -109,7 +109,7 @@ class TestReducibilityAnalyzer:
     def test_discriminative_mask_selects_top_k(self):
         """Mask should have exactly top_k True values."""
         analyzer = ReducibilityAnalyzer()
-        ratios = {f"metric_{i}": float(i) for i in range(32)}
+        ratios = {f"metric_{i}": float(i) for i in range(35)}
         # Map to actual metric names
         from domain.metrics import ALL_METRIC_NAMES
         ratios = {name: float(i) for i, name in enumerate(ALL_METRIC_NAMES)}

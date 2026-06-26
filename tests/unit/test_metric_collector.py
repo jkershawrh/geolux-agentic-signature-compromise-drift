@@ -12,9 +12,9 @@ class TestDefaultMetricExtractor:
         for dim in MetricDimension:
             assert dim in dimensions, f"Missing dimension: {dim}"
 
-    def test_extracts_32_metrics(self, metric_extractor, sample_run):
+    def test_extracts_35_metrics(self, metric_extractor, sample_run):
         metrics = metric_extractor.extract(sample_run)
-        assert len(metrics) == 32
+        assert len(metrics) == 35
 
     def test_all_normalized_values_in_range(self, metric_extractor, sample_run):
         metrics = metric_extractor.extract(sample_run)
@@ -187,6 +187,24 @@ class TestDefaultMetricExtractor:
         metrics = metric_extractor.extract(run)
         compliance = next(m for m in metrics if m.metric_name == "system_prompt_compliance")
         assert compliance.value > 0.5  # Found the marker
+
+    def test_embedding_metrics_zero_without_adapter(self, sample_run):
+        extractor = DefaultMetricExtractor()  # no embedding adapter
+        metrics = extractor.extract(sample_run)
+        emb_metrics = [m for m in metrics if m.dimension == MetricDimension.EMBEDDING]
+        assert len(emb_metrics) == 3
+        for m in emb_metrics:
+            assert m.value == 0.0  # zeros when no adapter
+
+    def test_embedding_metrics_nonzero_with_mock_adapter(self, sample_run):
+        from adapters.embedding_adapter import MockEmbeddingAdapter
+        extractor = DefaultMetricExtractor(embedding_adapter=MockEmbeddingAdapter())
+        metrics = extractor.extract(sample_run)
+        emb_metrics = [m for m in metrics if m.dimension == MetricDimension.EMBEDDING]
+        assert len(emb_metrics) == 3
+        # Mock adapter produces deterministic non-zero values
+        topic = next(m for m in emb_metrics if m.metric_name == "embedding_topic_adherence")
+        assert 0.0 <= topic.value <= 1.0
 
     def test_closing_pattern_differs_by_signoff(self, metric_extractor):
         run_a = ControlledRun(

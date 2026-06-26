@@ -2,12 +2,17 @@ import math
 import re
 import uuid
 
+import numpy as np
+
 from domain.enums import MetricDimension
 from domain.metrics import MetricMeasurement
 from domain.models import ControlledRun
 
 
 class DefaultMetricExtractor:
+    def __init__(self, embedding_adapter=None):
+        self._embeddings = embedding_adapter
+
     def extract(self, run: ControlledRun) -> list[MetricMeasurement]:
         metrics: list[MetricMeasurement] = []
         metrics.extend(self._response_structure(run))
@@ -18,6 +23,7 @@ class DefaultMetricExtractor:
         metrics.extend(self._semantic_consistency(run))
         metrics.extend(self._safety_alignment(run))
         metrics.extend(self._agent_specific(run))
+        metrics.extend(self._embedding_metrics(run))
         return metrics
 
     def _make_metric(
@@ -287,4 +293,43 @@ class DefaultMetricExtractor:
             self._make_metric(run, dim, "system_prompt_compliance", compliance, compliance),
             self._make_metric(run, dim, "response_signature_phrases", signature, signature),
             self._make_metric(run, dim, "closing_pattern", closing, closing),
+        ]
+
+    def _embedding_metrics(self, run: ControlledRun) -> list[MetricMeasurement]:
+        dim = MetricDimension.EMBEDDING
+
+        if self._embeddings is None:
+            # No embedding adapter — return zero placeholders
+            return [
+                self._make_metric(run, dim, "embedding_closing_signature", 0.0, 0.0),
+                self._make_metric(run, dim, "embedding_topic_adherence", 0.0, 0.0),
+                self._make_metric(run, dim, "embedding_response_density", 0.0, 0.0),
+            ]
+
+        # Metric 33: embedding_closing_signature
+        # Embed last 50 words, take mean of first 10 dims as scalar signature
+        closing_text = " ".join(run.response_text.split()[-50:])
+        closing_emb = self._embeddings.embed(closing_text)
+        # Normalize first 10 dims to [0, 1] via sigmoid
+        raw_sig = float(np.mean(closing_emb[:10]))
+        closing_sig = 1.0 / (1.0 + np.exp(-raw_sig * 10))  # sigmoid scaling
+
+        # Metric 34: embedding_topic_adherence
+        # Cosine similarity between prompt and response embeddings
+        topic_sim = self._embeddings.similarity(run.prompt_text, run.response_text)
+        topic_adherence = (topic_sim + 1.0) / 2.0  # scale from [-1,1] to [0,1]
+
+        # Metric 35: embedding_response_density
+        # L2 norm of response embedding / sqrt(word count)
+        resp_emb = self._embeddings.embed(run.response_text)
+        resp_norm = float(np.linalg.norm(resp_emb))
+        word_count = max(len(run.response_text.split()), 1)
+        density = resp_norm / (word_count ** 0.5)
+        # Normalize to [0, 1] — typical norms are ~20-30 for 768-dim
+        density_normalized = min(density / 5.0, 1.0)
+
+        return [
+            self._make_metric(run, dim, "embedding_closing_signature", closing_sig, closing_sig),
+            self._make_metric(run, dim, "embedding_topic_adherence", topic_adherence, topic_adherence),
+            self._make_metric(run, dim, "embedding_response_density", density_normalized, density_normalized),
         ]

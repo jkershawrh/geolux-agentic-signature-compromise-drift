@@ -28,6 +28,7 @@ DIMENSION_TO_DRIFT: dict[MetricDimension, DriftCategory] = {
     MetricDimension.SEMANTIC_CONSISTENCY: DriftCategory.SEMANTIC,
     MetricDimension.SAFETY_ALIGNMENT: DriftCategory.GOAL,
     MetricDimension.AGENT_SPECIFIC: DriftCategory.SEMANTIC,
+    MetricDimension.EMBEDDING: DriftCategory.SEMANTIC,
 }
 
 

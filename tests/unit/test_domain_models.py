@@ -162,11 +162,11 @@ class TestMetricDefinitions:
         assert len(ALL_METRIC_NAMES) == len(set(ALL_METRIC_NAMES))
 
     def test_total_metric_count(self):
-        assert len(ALL_METRIC_NAMES) == 32
+        assert len(ALL_METRIC_NAMES) == 35
 
     def test_exclusion_mask_length_matches_metrics(self):
         mask = get_exclusion_mask()
-        assert len(mask) == 32
+        assert len(mask) == 35
 
     def test_exclusion_mask_excludes_none(self):
         mask = get_exclusion_mask()
@@ -365,7 +365,7 @@ class TestLifecycleTransitions:
 
 class TestEnums:
     def test_all_metric_dimensions(self):
-        assert len(MetricDimension) == 8
+        assert len(MetricDimension) == 9
 
     def test_all_drift_categories(self):
         assert len(DriftCategory) == 5

@@ -49,7 +49,7 @@ class TestRepositoryMetrics:
         metrics = metric_extractor.extract(sample_run)
         repository.save_metrics(metrics)
         retrieved = repository.get_metrics_for_agent(sample_agent.agent_id)
-        assert len(retrieved) == 32
+        assert len(retrieved) == 35
 
 
 class TestRepositorySignatures:

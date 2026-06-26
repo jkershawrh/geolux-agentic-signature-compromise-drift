@@ -1061,7 +1061,19 @@ def run_validation(use_maas: bool = False) -> None:
     print("#" * 60)
 
     os.makedirs(str(VIZ_DIR), exist_ok=True)
-    extractor = DefaultMetricExtractor()
+
+    embedding_adapter = None
+    if use_maas:
+        try:
+            from adapters.embedding_adapter import EmbeddingAdapter
+            embedding_adapter = EmbeddingAdapter(
+                api_key=os.environ.get("LITELLM_GPU_API_KEY", ""),
+            )
+            print("  Embedding adapter: nomic-embed-text-v1-5 (GPU)")
+        except Exception as e:
+            print(f"  Embedding adapter: unavailable ({e})")
+
+    extractor = DefaultMetricExtractor(embedding_adapter=embedding_adapter)
 
     # ---------------------------------------------------------------
     # Phase 0: Collect data for all 19 agents on all 20 prompts

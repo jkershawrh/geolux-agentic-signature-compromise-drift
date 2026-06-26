@@ -47,6 +47,7 @@ class MetricDimension(str, Enum):
     SEMANTIC_CONSISTENCY = "semantic_consistency"
     SAFETY_ALIGNMENT = "safety_alignment"
     AGENT_SPECIFIC = "agent_specific"
+    EMBEDDING = "embedding"
 
 
 class RubricState(str, Enum):
