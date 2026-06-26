@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from datetime import datetime, timezone
 from typing import Optional
@@ -56,6 +58,7 @@ class RunRow(Base):
     tool_sequence_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     raw_usage_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     perturbation_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    study_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
@@ -198,4 +201,21 @@ class AuditEventRow(Base):
     payload_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     previous_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     event_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class StudyRow(Base):
+    __tablename__ = "asc_studies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    study_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    study_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    model_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    agents_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    runs_per_agent: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_runs: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+    results_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

@@ -18,6 +18,7 @@ from db.models import (
     RubricScoreRow,
     RunRow,
     SignatureRow,
+    StudyRow,
 )
 from domain.enums import AgentStatus, RubricState
 from domain.geometry import DriftMeasurement, GeometricSignature
@@ -361,6 +362,42 @@ class Repository:
             row.strike_count = count
             row.updated_at = datetime.now(timezone.utc)
             self._session.commit()
+
+    # --- Studies ---
+
+    def save_study(self, study_id: str, study_name: str, model_id: str,
+                   agents_count: int, runs_per_agent: int) -> None:
+        row = StudyRow(
+            study_id=study_id,
+            study_name=study_name,
+            model_id=model_id,
+            agents_count=agents_count,
+            runs_per_agent=runs_per_agent,
+            status="running",
+            started_at=datetime.now(timezone.utc),
+        )
+        self._session.add(row)
+        self._session.commit()
+
+    def complete_study(self, study_id: str, results: dict) -> None:
+        row = self._session.query(StudyRow).filter_by(study_id=study_id).first()
+        if row:
+            row.status = "completed"
+            row.completed_at = datetime.now(timezone.utc)
+            row.results_json = json.dumps(results)
+            row.total_runs = results.get("total_runs", 0)
+            self._session.commit()
+
+    def fail_study(self, study_id: str, error: str) -> None:
+        row = self._session.query(StudyRow).filter_by(study_id=study_id).first()
+        if row:
+            row.status = "failed"
+            row.completed_at = datetime.now(timezone.utc)
+            row.results_json = json.dumps({"error": error})
+            self._session.commit()
+
+    def list_studies(self) -> list:
+        return self._session.query(StudyRow).order_by(StudyRow.created_at).all()
 
     # --- Audit Events ---
 
