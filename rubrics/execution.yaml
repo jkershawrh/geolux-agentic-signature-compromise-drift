@@ -1,0 +1,70 @@
+id: execution
+version: v0.1.0
+stage: 3
+description: Execution — controlled agent runs, perturbation scenarios, orchestration
+
+evaluation_dimensions:
+  run_orchestrator:
+    description: Orchestrate controlled agent execution
+    pass_criteria:
+      - Load scenario and configure agent
+      - Execute via adapter (mock or real)
+      - Extract metrics and compute signature
+      - Compare to baseline
+      - Persist all data
+    current_state: red
+    test_count: 0
+
+  perturbation_engine:
+    description: Introduce controlled changes to agents
+    pass_criteria:
+      - Prompt injection scenario
+      - Model swap scenario
+      - Temperature drift scenario
+      - Context poisoning scenario
+      - Changes measured iteratively
+    current_state: red
+    test_count: 0
+
+  scenario_library:
+    description: Library of controlled test scenarios
+    pass_criteria:
+      - healthy_baseline scenario
+      - prompt_injection scenario
+      - model_swap scenario
+      - temperature_drift scenario
+      - context_poisoning scenario
+      - Each defines prompts and expected drift
+    current_state: red
+    test_count: 0
+
+  authentication:
+    description: Verify agent identity against stored signature
+    pass_criteria:
+      - Correct agent identified with high confidence
+      - Wrong agent rejected
+      - Compromised agent flagged
+    current_state: red
+    test_count: 0
+
+  bdd_scenarios:
+    description: Behavioral specifications for execution
+    pass_criteria:
+      - Agent authentication Gherkin scenario passes
+      - Controlled execution Gherkin scenario passes
+    current_state: red
+    test_count: 0
+
+  contract_tests:
+    description: Interface contracts between components
+    pass_criteria:
+      - Adapter protocol contracts verified
+      - Engine interface contracts verified
+      - Repository interface contracts verified
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 15
+  current_test_count: 0

@@ -1,0 +1,63 @@
+id: measurement
+version: v0.1.0
+stage: 4
+description: Measurement — drift detection, reducibility analysis, visualization
+
+evaluation_dimensions:
+  drift_detector:
+    description: Compare signatures and detect drift
+    pass_criteria:
+      - Geodesic distance computation
+      - 5 drift categories classified
+      - Per-dimension decomposition
+      - Statistical significance (permutation test)
+      - Compromise probability
+    current_state: red
+    test_count: 0
+
+  reducibility_analyzer:
+    description: Classify metrics as reducible/irreducible
+    pass_criteria:
+      - Variance analysis across identical runs
+      - Autocorrelation computation
+      - Conditional entropy estimation
+      - Correct classification of known reducible metrics
+      - Correct classification of known irreducible metrics
+    current_state: red
+    test_count: 0
+
+  visualization:
+    description: Generate plots for research analysis
+    pass_criteria:
+      - 3D signature geometry plots (matplotlib)
+      - Radar charts for metric dimensions
+      - Drift timeline plots
+      - Manifold projection plots
+      - Red/green rubric matrix rendering
+    current_state: red
+    test_count: 0
+
+  statistical_validation:
+    description: Statistical rigor of measurements
+    pass_criteria:
+      - Permutation test for drift significance
+      - Confidence intervals for signatures
+      - Effect size computation
+      - Multiple comparison correction
+    current_state: red
+    test_count: 0
+
+  property_tests:
+    description: Property-based invariants (Hypothesis)
+    pass_criteria:
+      - geodesic_distance always >= 0
+      - normalized metrics always in [0,1]
+      - signature deterministic for same inputs
+      - triangle inequality for distances
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 15
+  current_test_count: 0

@@ -1,0 +1,50 @@
+id: semantic_analysis
+version: v0.1.0
+stage: 7
+description: Semantic Embedding Analyzer — uses MaaS model as semantic judge to detect metric gaming
+
+evaluation_dimensions:
+  judge_prompting:
+    description: Construct and send semantic similarity judge prompts via inference adapter
+    pass_criteria:
+      - Judge prompt contains both responses and the original question
+      - JSON response parsed correctly
+      - Regex fallback handles malformed JSON
+      - Word-overlap heuristic used when judge response unparseable
+    current_state: red
+    test_count: 0
+
+  gaming_detection:
+    description: Detect metric gaming via semantic gap analysis
+    pass_criteria:
+      - Semantic gap computed as structural_similarity minus similarity_score
+      - Gaming detected when mean gap exceeds threshold
+      - No false positive when both similarities are high
+      - Gaming confidence in [0, 1]
+    current_state: red
+    test_count: 0
+
+  semantic_drift_report:
+    description: Aggregate pairwise comparisons into a drift report
+    pass_criteria:
+      - Run pairs compared individually
+      - Means computed correctly
+      - Report contains all individual results
+      - Results list matches input pairs count
+    current_state: red
+    test_count: 0
+
+  maas_integration:
+    description: Integration with MaaS inference adapter for judge calls
+    pass_criteria:
+      - SemanticAnalyzer accepts any InferenceAdapter
+      - MockInferenceAdapter works as judge backend
+      - Output types are correct Pydantic models
+      - Judge model ID propagated to results
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 19
+  current_test_count: 0

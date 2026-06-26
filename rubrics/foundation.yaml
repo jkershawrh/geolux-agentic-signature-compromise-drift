@@ -1,0 +1,79 @@
+id: foundation
+version: v0.1.0
+stage: 1
+description: Foundation — project skeleton, domain models, database, test infrastructure
+
+evaluation_dimensions:
+  domain_models:
+    description: Pydantic domain models with validators
+    pass_criteria:
+      - AgentProfile with hash computation and validation
+      - ControlledRun with auto-derived fields
+      - MetricMeasurement with normalization bounds
+      - GeometricSignature with dimension/vector consistency
+      - DriftMeasurement with range validators
+      - ReducibilityClassification with non-negative variance
+      - All enums defined (7 metric dimensions, 5 drift categories, 5 compromise types)
+    current_state: red
+    test_count: 0
+
+  database_schema:
+    description: SQLite schema with 8 tables auto-created
+    pass_criteria:
+      - asc_agents table with all columns
+      - asc_runs table with JSON fields for tool calls
+      - asc_metrics table with composite index
+      - asc_signatures table with embedding vectors
+      - asc_drift_measurements table
+      - asc_reducibility_classifications table
+      - asc_rubric_scores table
+      - asc_audit_events table with hash chain
+    current_state: red
+
+  repository:
+    description: Repository pattern for CRUD operations
+    pass_criteria:
+      - Save and retrieve agents
+      - Save and retrieve runs
+      - Save and retrieve metrics
+      - Save and retrieve signatures
+      - Save drift measurements
+      - Audit event logging with hash chain
+    current_state: red
+    test_count: 0
+
+  mock_adapter:
+    description: Deterministic mock inference adapter for TDD
+    pass_criteria:
+      - Returns completed runs with consistent data
+      - Supports different response types (default, code, reasoning, refusal)
+      - Configurable tool calls and token counts
+      - Deterministic across invocations
+    current_state: red
+    test_count: 0
+
+  metric_extractor:
+    description: Extract 29 metrics across 7 dimensions from runs
+    pass_criteria:
+      - All 7 dimensions populated
+      - 29 total metrics extracted
+      - All normalized values in [0, 1]
+      - Agent and run IDs propagated
+      - Tool behavior metrics correct with/without tools
+      - Thinking metrics correct with/without thinking tokens
+    current_state: red
+    test_count: 0
+
+  lifecycle:
+    description: State machine transitions for agents and runs
+    pass_criteria:
+      - Valid agent transitions defined
+      - Invalid transitions rejected
+      - Valid run transitions defined
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 20
+  current_test_count: 0

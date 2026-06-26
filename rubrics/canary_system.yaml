@@ -1,0 +1,49 @@
+id: canary_system
+version: v0.1.0
+stage: 10
+description: Challenge-Response Canary System — embeds hidden verification signals in prompts that only the correct agent config would honor
+
+evaluation_dimensions:
+  canary_library:
+    description: Default canary probe library covering all four types
+    pass_criteria:
+      - At least 12 default probes defined
+      - 3 probes per CanaryType (FORMAT, CONTENT, BEHAVIORAL, NEGATIVE)
+      - Each probe has instruction, base_question, full_prompt, verification_fn_name
+      - CanaryProbe Pydantic model validates correctly
+    current_state: red
+    test_count: 0
+
+  execution_and_verification:
+    description: Execute canary probes against agents and verify responses
+    pass_criteria:
+      - execute_and_verify runs all probes and returns CanaryReport
+      - verify_response checks format canaries (start/end patterns)
+      - verify_response checks content canaries (substring search)
+      - verify_response checks behavioral canaries (keyword detection)
+      - verify_response checks negative canaries (forbidden pattern absence)
+    current_state: red
+    test_count: 0
+
+  per_type_scoring:
+    description: Per-type and overall pass rate computation
+    pass_criteria:
+      - pass_rate computed as passed / total in [0, 1]
+      - per_type_pass_rate has entry for each CanaryType present in results
+      - Correct aggregation across mixed pass/fail results
+    current_state: red
+    test_count: 0
+
+  authenticity_integration:
+    description: Weighted authenticity score from per-type pass rates
+    pass_criteria:
+      - authenticity_score in [0, 1]
+      - Weighted combination of per-type pass rates
+      - CanaryReport contains all CanaryResult instances
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 19
+  current_test_count: 0

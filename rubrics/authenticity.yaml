@@ -1,0 +1,64 @@
+id: authenticity
+version: v0.1.0
+stage: 2
+description: Authenticity — agent signatures via geometric metrics, baseline establishment
+
+evaluation_dimensions:
+  claude_adapter:
+    description: Real Claude API integration via anthropic SDK
+    pass_criteria:
+      - Streaming inference with TTFT measurement
+      - Token usage extraction from response
+      - Tool call extraction and sequencing
+      - Thinking block detection
+      - Error handling for API failures
+    current_state: red
+    test_count: 0
+
+  geometric_embedding:
+    description: Metric vectors mapped to geometric space
+    pass_criteria:
+      - Min-max normalization across history
+      - Metric vector construction (ordered by dimension)
+      - UMAP manifold learning
+      - Riemannian metric tensor computation
+    current_state: red
+    test_count: 0
+
+  signature_generation:
+    description: Compute geometric signatures from N runs
+    pass_criteria:
+      - Frechet mean computation
+      - Covariance structure
+      - Convergence tracking
+      - Stability score
+    current_state: red
+    test_count: 0
+
+  baseline_establishment:
+    description: Establish known-good baseline from 50+ runs
+    pass_criteria:
+      - Convergence detection (epsilon threshold)
+      - Baseline stored as SignatureType.BASELINE
+      - Agent transitions to ACTIVE status
+    current_state: red
+    test_count: 0
+
+  signature_uniqueness:
+    description: Different agents produce different signatures
+    pass_criteria:
+      - Geodesic distance between different agents > threshold
+    current_state: red
+    test_count: 0
+
+  signature_stability:
+    description: Same agent produces consistent signatures over time
+    pass_criteria:
+      - Geodesic distance between same agent's signatures < threshold
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 15
+  current_test_count: 0

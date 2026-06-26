@@ -1,0 +1,59 @@
+id: recovery
+version: v0.1.0
+stage: 5
+description: Recovery — compromise detection, alerting, recovery validation
+
+evaluation_dimensions:
+  compromise_detector:
+    description: Detect agent compromise from drift measurements
+    pass_criteria:
+      - Threshold-based detection
+      - Multi-dimensional drift analysis
+      - Confidence scoring
+      - False positive rate < 10%
+    current_state: red
+    test_count: 0
+
+  alert_generation:
+    description: Generate alerts for detected compromises
+    pass_criteria:
+      - Log-based alert output
+      - Severity classification (warning, critical)
+      - Alert includes drift evidence
+    current_state: red
+    test_count: 0
+
+  recovery_engine:
+    description: Recovery procedures after compromise
+    pass_criteria:
+      - Re-establish baseline from clean runs
+      - Validate recovery via signature comparison
+      - Agent transitions to RECOVERED then ACTIVE
+    current_state: red
+    test_count: 0
+
+  end_to_end:
+    description: Full pipeline validation
+    pass_criteria:
+      - Baseline established
+      - Perturbation introduced
+      - Drift detected
+      - Compromise flagged
+      - Recovery executed
+      - Validation confirms recovery
+    current_state: red
+    test_count: 0
+
+  bdd_scenarios:
+    description: Full cycle BDD scenarios
+    pass_criteria:
+      - Compromise detection scenario passes
+      - Recovery scenario passes
+      - Full pipeline scenario passes
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 10
+  current_test_count: 0

@@ -1,0 +1,46 @@
+id: integrity_reset
+version: v0.1.0
+stage: 0
+description: P0 bug fixes, integrity reset, documentation corrections
+
+evaluation_dimensions:
+  perturbation_bug:
+    description: Stage 3 actually runs perturbed adapters
+    pass_criteria:
+      - Mock pipeline runs different adapter per scenario
+      - Each scenario produces distinct drift measurements
+    current_state: red
+    test_count: 0
+  reducibility_wiring:
+    description: Reducibility mask applied to signature generation
+    pass_criteria:
+      - Pipeline computes mask and passes to generator
+      - Signatures differ with vs without mask
+    current_state: red
+    test_count: 0
+  permutation_test:
+    description: Statistical test uses consistent distance metric
+    pass_criteria:
+      - Observed and null distribution use same distance function
+      - p-value is statistically valid
+    current_state: red
+    test_count: 0
+  rubric_automation:
+    description: Rubric state derived from test results not manual
+    pass_criteria:
+      - evaluate_rubrics.py runs tests and counts passes
+      - YAML updated automatically from test results
+    current_state: red
+    test_count: 0
+  placeholder_metrics:
+    description: Placeholder metrics documented or implemented
+    pass_criteria:
+      - All 7 placeholders marked or replaced
+      - Signatures exclude placeholders
+    current_state: red
+    test_count: 0
+
+promotion_gate:
+  status: NOT_PASSED
+  required_test_count: 15
+  current_test_count: 0
