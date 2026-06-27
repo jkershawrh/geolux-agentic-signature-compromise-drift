@@ -17,6 +17,14 @@ import numpy as np
 
 from engine.geometric.distance import euclidean_distance
 
+# Optional embedding support -- imported lazily to avoid hard dependency
+try:
+    from engine.embedding_signature import EmbeddingSignatureGenerator
+    from domain.embedding_models import EmbeddingBaseline
+except ImportError:  # pragma: no cover
+    EmbeddingSignatureGenerator = None  # type: ignore[assignment,misc]
+    EmbeddingBaseline = None  # type: ignore[assignment,misc]
+
 
 @dataclass
 class VerificationResult:
@@ -160,17 +168,30 @@ class DualPathVerifier:
         fast_threshold: float = 0.3,
         secure_tolerance: float = 0.5,
         escalation_policy: str = "ambiguous",  # "ambiguous", "always", "never"
+        embedding_generator: Optional["EmbeddingSignatureGenerator"] = None,
     ):
         self._lsh = LSHIndex(n_planes=n_planes)
         self._commitments = CommitmentStore()
         self._fast_threshold = fast_threshold
         self._secure_tolerance = secure_tolerance
         self._escalation_policy = escalation_policy
+        self._embedding_gen = embedding_generator
+        self._embedding_baselines: dict[str, "EmbeddingBaseline"] = {}
 
-    def register_agent(self, agent_id: str, centroid: np.ndarray) -> dict:
-        """Register an agent in both the LSH index and commitment store."""
+    def register_agent(
+        self,
+        agent_id: str,
+        centroid: np.ndarray,
+        embedding_baseline: Optional["EmbeddingBaseline"] = None,
+    ) -> dict:
+        """Register an agent in both the LSH index and commitment store.
+
+        Optionally accepts an embedding baseline for combined verification.
+        """
         bucket_id = self._lsh.register(agent_id, centroid)
         commitment = self._commitments.commit(agent_id, centroid)
+        if embedding_baseline is not None:
+            self._embedding_baselines[agent_id] = embedding_baseline
         return {
             "agent_id": agent_id,
             "bucket_id": bucket_id,
@@ -178,11 +199,20 @@ class DualPathVerifier:
             "bucket_occupants": self._lsh._buckets.get(bucket_id, []),
         }
 
-    def verify(self, vec: np.ndarray, expected_agent_id: str | None = None) -> VerificationResult:
+    def verify(
+        self,
+        vec: np.ndarray,
+        expected_agent_id: str | None = None,
+        response_text: str | None = None,
+    ) -> VerificationResult:
         """Verify a metric vector through the dual-path system.
 
         If expected_agent_id is provided, verify that specific agent.
         Otherwise, identify which agent produced the vector.
+
+        If response_text is provided and an embedding generator + baselines are
+        available, the embedding distance is also checked. A failed embedding
+        check halves the confidence and appends '+embedding_fail' to path_used.
         """
         # --- Fast path: LSH lookup ---
         bucket_id, candidates = self._lsh.lookup(vec)
@@ -215,7 +245,7 @@ class DualPathVerifier:
         if not should_escalate and fast_agent_id:
             # Fast path succeeds
             confidence = max(0.0, 1.0 - fast_distance / self._fast_threshold)
-            return VerificationResult(
+            result = VerificationResult(
                 agent_id=fast_agent_id,
                 path_used="fast",
                 confidence=min(1.0, confidence),
@@ -225,6 +255,7 @@ class DualPathVerifier:
                 escalated=False,
                 details=f"Fast path: bucket {bucket_id}, distance {fast_distance:.4f}",
             )
+            return self._apply_embedding_check(result, response_text)
 
         # --- Secure path: full verification ---
         if expected_agent_id:
@@ -233,7 +264,7 @@ class DualPathVerifier:
                 expected_agent_id, vec, self._secure_tolerance
             )
             confidence = max(0.0, 1.0 - dist / self._secure_tolerance) if is_valid else 0.0
-            return VerificationResult(
+            result = VerificationResult(
                 agent_id=expected_agent_id if is_valid else None,
                 path_used="secure",
                 confidence=min(1.0, confidence),
@@ -243,6 +274,7 @@ class DualPathVerifier:
                 escalated=should_escalate,
                 details=f"Secure path: distance {dist:.4f}, valid={is_valid}",
             )
+            return self._apply_embedding_check(result, response_text)
 
         # Identify from all registered agents
         best_id = None
@@ -257,7 +289,7 @@ class DualPathVerifier:
 
         if best_id:
             confidence = max(0.0, 1.0 - best_dist / self._secure_tolerance)
-            return VerificationResult(
+            result = VerificationResult(
                 agent_id=best_id,
                 path_used="secure",
                 confidence=min(1.0, confidence),
@@ -267,6 +299,7 @@ class DualPathVerifier:
                 escalated=should_escalate,
                 details=f"Secure path: identified {best_id}, distance {best_dist:.4f}",
             )
+            return self._apply_embedding_check(result, response_text)
 
         return VerificationResult(
             agent_id=None,
@@ -278,6 +311,39 @@ class DualPathVerifier:
             escalated=should_escalate,
             details="Secure path: no matching agent found",
         )
+
+    def _apply_embedding_check(
+        self, result: VerificationResult, response_text: str | None
+    ) -> VerificationResult:
+        """If embedding baselines are available, validate response_text against them.
+
+        On failure, halve the confidence and mark path_used with '+embedding_fail'.
+        """
+        if (
+            response_text is None
+            or self._embedding_gen is None
+            or result.agent_id is None
+            or result.agent_id not in self._embedding_baselines
+        ):
+            return result
+
+        emb_baseline = self._embedding_baselines[result.agent_id]
+        emb_valid, emb_dist = self._embedding_gen.verify(response_text, emb_baseline)
+        if not emb_valid:
+            return VerificationResult(
+                agent_id=result.agent_id,
+                path_used=result.path_used + "+embedding_fail",
+                confidence=result.confidence * 0.5,
+                distance=result.distance,
+                bucket_id=result.bucket_id,
+                commitment_valid=result.commitment_valid,
+                escalated=result.escalated,
+                details=(
+                    result.details
+                    + f" | embedding check failed (dist={emb_dist:.4f})"
+                ),
+            )
+        return result
 
     @property
     def lsh_index(self) -> LSHIndex:
