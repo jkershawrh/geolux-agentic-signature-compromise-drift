@@ -29,13 +29,24 @@ class EmbeddingAdapter:
         headers = {"Content-Type": "application/json"}
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"
-        resp = requests.post(
-            f"{self._base_url}/v1/embeddings",
-            json={"model": self._model, "input": text[:2000]},  # truncate long texts
-            headers=headers,
-            timeout=self._timeout,
-        )
-        resp.raise_for_status()
+        last_err = None
+        for attempt in range(3):
+            try:
+                resp = requests.post(
+                    f"{self._base_url}/v1/embeddings",
+                    json={"model": self._model, "input": text[:2000]},
+                    headers=headers,
+                    timeout=self._timeout,
+                )
+                resp.raise_for_status()
+                break
+            except (requests.ConnectionError, requests.Timeout) as e:
+                last_err = e
+                if attempt < 2:
+                    import time
+                    time.sleep(3 * (attempt + 1))
+        else:
+            raise last_err
         data = resp.json()
         return np.array(data["data"][0]["embedding"])
 

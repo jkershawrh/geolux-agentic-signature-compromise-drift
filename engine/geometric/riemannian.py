@@ -19,6 +19,20 @@ def compute_metric_tensor(covariance: np.ndarray,
     return np.linalg.inv(regularized)
 
 
+def compute_metric_tensor_shrinkage(vectors: np.ndarray,
+                                    regularization: float = 1e-6) -> np.ndarray:
+    """Compute metric tensor using Ledoit-Wolf shrinkage.
+
+    Better than cov + epsilon*I when n_samples << n_features.
+    """
+    from sklearn.covariance import LedoitWolf
+    if vectors.shape[0] < 2:
+        return np.eye(vectors.shape[1])
+    lw = LedoitWolf().fit(vectors)
+    cov = lw.covariance_
+    return np.linalg.inv(cov + regularization * np.eye(cov.shape[0]))
+
+
 def local_metric_tensor(vectors: np.ndarray, point: np.ndarray,
                         k_neighbors: int = 10,
                         regularization: float = 1e-6) -> np.ndarray:

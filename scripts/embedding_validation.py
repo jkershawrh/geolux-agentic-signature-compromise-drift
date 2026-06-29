@@ -540,11 +540,13 @@ def run_embedding_validation(use_maas: bool = False) -> None:
         sg = np.array(sweep_genuine)
         si = np.array(sweep_impostor)
         thresholds = np.linspace(min(sg.min(), si.min()), max(sg.max(), si.max()), 200)
+        best_diff = float('inf')
         w_eer = 0.5
         for t in thresholds:
             far = float(np.mean(si <= t))
             frr = float(np.mean(sg > t))
-            if abs(far - frr) < abs(w_eer - 0.5):
+            if abs(far - frr) < best_diff:
+                best_diff = abs(far - frr)
                 w_eer = (far + frr) / 2
         acc = sweep_correct / max(sweep_total, 1) * 100
         print(f"  {w:5.1f} {w_eer*100:7.1f}% {acc:7.0f}%")
@@ -555,6 +557,98 @@ def run_embedding_validation(use_maas: bool = False) -> None:
     print(f"\n  Optimal weight: {best_w:.1f} (EER={best_w_eer*100:.1f}%)")
     print(f"  Embedding-only (w=1.0): EER={embed_eer*100:.1f}%")
     print(f"  Metric-only (w=0.0): EER={metric_eer*100:.1f}%")
+
+    # ---------------------------------------------------------------
+    # PCA Component Sweep
+    # ---------------------------------------------------------------
+    print("\n  PCA Component Sweep:")
+    print(f"  {'n_comp':>8s} {'EER':>8s} {'Per-Run':>8s}")
+    for n_comp_target in [5, 10, 15, 20, 30, 50]:
+        n_comp_actual = min(n_comp_target, all_emb_matrix.shape[0] - 1, all_emb_matrix.shape[1])
+        pca_sweep = PCA(n_components=n_comp_actual)
+        all_proj_sweep = pca_sweep.fit_transform(all_emb_matrix)
+        # Build per-agent centroids in this PCA space
+        sweep_centroids = {}
+        sidx = 0
+        for aid in agent_ids:
+            agent_proj = all_proj_sweep[sidx:sidx + n_train]
+            sweep_centroids[aid] = agent_proj.mean(axis=0)
+            sidx += n_train
+        # Evaluate per-run accuracy and EER
+        sweep_genuine_pca = []
+        sweep_impostor_pca = []
+        sweep_correct_pca = 0
+        sweep_total_pca = 0
+        for aid in agent_ids:
+            test_texts_pca = response_texts[aid][n_train:]
+            for run_idx in range(n_test):
+                txt = test_texts_pca[run_idx]
+                emb_raw = emb_gen._adapter.embed(txt)
+                proj_pca = pca_sweep.transform(emb_raw.reshape(1, -1))[0]
+                sweep_total_pca += 1
+                best_pca = min(
+                    agent_ids,
+                    key=lambda x: euclidean_distance(proj_pca, sweep_centroids[x]),
+                )
+                if best_pca == aid:
+                    sweep_correct_pca += 1
+                # Genuine distance
+                d_own = euclidean_distance(proj_pca, sweep_centroids[aid])
+                sweep_genuine_pca.append(d_own)
+                # Impostor distances
+                for other in agent_ids:
+                    if other == aid:
+                        continue
+                    d_imp = euclidean_distance(proj_pca, sweep_centroids[other])
+                    sweep_impostor_pca.append(d_imp)
+        pca_eer, _ = _compute_eer(np.array(sweep_genuine_pca), np.array(sweep_impostor_pca))
+        pca_acc = sweep_correct_pca / max(sweep_total_pca, 1) * 100
+        print(f"  {n_comp_actual:>8d} {pca_eer*100:>7.1f}% {pca_acc:>7.0f}%")
+
+    # ---------------------------------------------------------------
+    # Bootstrap Confidence Intervals
+    # ---------------------------------------------------------------
+    print("\n  Bootstrap Confidence Intervals (20 resamples):")
+    eer_samples = []
+    for boot in range(20):
+        rng = np.random.RandomState(boot)
+        boot_genuine = rng.choice(embed_genuine, size=len(embed_genuine), replace=True)
+        boot_impostor = rng.choice(embed_impostor, size=len(embed_impostor), replace=True)
+        boot_eer, _ = _compute_eer(boot_genuine, boot_impostor)
+        eer_samples.append(boot_eer)
+    print(f"  Embedding EER: {np.mean(eer_samples)*100:.1f}% +/- {np.std(eer_samples)*100:.1f}%")
+
+    # ---------------------------------------------------------------
+    # Embedding ROC Curve
+    # ---------------------------------------------------------------
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from sklearn.metrics import roc_curve, auc as sk_auc
+
+    y_true_roc = np.concatenate([np.zeros(len(embed_genuine)), np.ones(len(embed_impostor))])
+    y_scores_roc = np.concatenate([embed_genuine, embed_impostor])
+
+    # For identity verification: lower distance = more likely genuine
+    y_scores_flip = -y_scores_roc
+    fpr_id, tpr_id, _ = roc_curve(1 - y_true_roc, y_scores_flip)
+    auc_id = sk_auc(fpr_id, tpr_id)
+
+    fig, ax = plt.subplots(figsize=(7, 6))
+    ax.plot(fpr_id, tpr_id, 'b-', lw=2, label=f'Embedding ROC (AUC={auc_id:.3f})')
+    ax.plot([0, 1], [0, 1], 'k--', lw=1, label='Random')
+    ax.set_xlabel('False Positive Rate')
+    ax.set_ylabel('True Positive Rate')
+    ax.set_title('Embedding Identity Verification ROC')
+    ax.legend()
+    ax.grid(alpha=0.3)
+    plt.tight_layout()
+    output_dir = Path(__file__).parent.parent / "visualizations" / "benchmark"
+    os.makedirs(str(output_dir), exist_ok=True)
+    plt.savefig(str(output_dir / "embedding_roc.png"), dpi=150)
+    plt.close()
+    print(f"\n  Embedding ROC AUC: {auc_id:.3f}")
+    print(f"  ROC saved to visualizations/benchmark/embedding_roc.png")
 
     # Verdict
     print("\n  " + "-" * 50)
