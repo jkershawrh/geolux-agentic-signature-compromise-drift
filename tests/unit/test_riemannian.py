@@ -3,6 +3,7 @@ import pytest
 
 from engine.geometric.riemannian import (
     compute_metric_tensor,
+    compute_metric_tensor_shrinkage,
     local_metric_tensor,
     anisotropy_estimate,
 )
@@ -64,3 +65,16 @@ class TestAnisotropyEstimate:
         metric = np.diag([1, 10, 100, 1000, 10000])
         anisotropy = anisotropy_estimate(metric)
         assert anisotropy > 0
+
+
+class TestLedoitWolfShrinkage:
+    def test_ledoit_wolf_shrinkage(self):
+        vectors = np.random.RandomState(42).randn(10, 35)
+        tensor = compute_metric_tensor_shrinkage(vectors)
+        assert tensor.shape == (35, 35)
+        np.testing.assert_array_almost_equal(tensor, tensor.T)  # symmetric
+
+    def test_single_sample_returns_identity(self):
+        vectors = np.random.RandomState(0).randn(1, 5)
+        tensor = compute_metric_tensor_shrinkage(vectors)
+        np.testing.assert_array_almost_equal(tensor, np.eye(5))
