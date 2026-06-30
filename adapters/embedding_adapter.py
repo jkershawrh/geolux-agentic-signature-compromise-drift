@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Optional
 
 import numpy as np
 import requests
+
+
+def _strip_thinking(text: str) -> str:
+    """Strip chain-of-thought <think>...</think> blocks from text."""
+    cleaned = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+    cleaned = re.sub(r'<think>.*$', '', cleaned, flags=re.DOTALL)
+    return cleaned.strip()
 
 
 class EmbeddingAdapter:
@@ -26,6 +34,10 @@ class EmbeddingAdapter:
         """Embed a single text. Returns 768-dim numpy array."""
         if not text.strip():
             return np.zeros(768)
+        # Strip chain-of-thought blocks before embedding
+        clean_text = _strip_thinking(text)
+        if not clean_text:
+            return np.zeros(768)
         headers = {"Content-Type": "application/json"}
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"
@@ -34,7 +46,7 @@ class EmbeddingAdapter:
             try:
                 resp = requests.post(
                     f"{self._base_url}/v1/embeddings",
-                    json={"model": self._model, "input": text[:2000]},
+                    json={"model": self._model, "input": clean_text[:2000]},
                     headers=headers,
                     timeout=self._timeout,
                 )
@@ -66,7 +78,10 @@ class MockEmbeddingAdapter:
 
     def embed(self, text: str) -> np.ndarray:
         import hashlib
-        h = int(hashlib.sha256(text.encode()).hexdigest(), 16)
+        clean_text = _strip_thinking(text)
+        if not clean_text:
+            return np.zeros(768)
+        h = int(hashlib.sha256(clean_text.encode()).hexdigest(), 16)
         rng = np.random.RandomState(h % (2**31))
         return rng.randn(768).astype(np.float64)
 

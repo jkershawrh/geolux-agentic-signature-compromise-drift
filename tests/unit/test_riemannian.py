@@ -69,9 +69,9 @@ class TestAnisotropyEstimate:
 
 class TestLedoitWolfShrinkage:
     def test_ledoit_wolf_shrinkage(self):
-        vectors = np.random.RandomState(42).randn(10, 35)
+        vectors = np.random.RandomState(42).randn(10, 36)
         tensor = compute_metric_tensor_shrinkage(vectors)
-        assert tensor.shape == (35, 35)
+        assert tensor.shape == (36, 36)
         np.testing.assert_array_almost_equal(tensor, tensor.T)  # symmetric
 
     def test_single_sample_returns_identity(self):

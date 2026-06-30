@@ -12,9 +12,9 @@ class TestDefaultMetricExtractor:
         for dim in MetricDimension:
             assert dim in dimensions, f"Missing dimension: {dim}"
 
-    def test_extracts_35_metrics(self, metric_extractor, sample_run):
+    def test_extracts_36_metrics(self, metric_extractor, sample_run):
         metrics = metric_extractor.extract(sample_run)
-        assert len(metrics) == 35
+        assert len(metrics) == 36
 
     def test_all_normalized_values_in_range(self, metric_extractor, sample_run):
         metrics = metric_extractor.extract(sample_run)
@@ -192,16 +192,20 @@ class TestDefaultMetricExtractor:
         extractor = DefaultMetricExtractor()  # no embedding adapter
         metrics = extractor.extract(sample_run)
         emb_metrics = [m for m in metrics if m.dimension == MetricDimension.EMBEDDING]
-        assert len(emb_metrics) == 3
-        for m in emb_metrics:
+        assert len(emb_metrics) == 4
+        # prompt_anomaly defaults to 0.5 when no adapter; others are 0.0
+        non_anomaly = [m for m in emb_metrics if m.metric_name != "embedding_prompt_anomaly"]
+        for m in non_anomaly:
             assert m.value == 0.0  # zeros when no adapter
+        anomaly = next(m for m in emb_metrics if m.metric_name == "embedding_prompt_anomaly")
+        assert anomaly.value == 0.5
 
     def test_embedding_metrics_nonzero_with_mock_adapter(self, sample_run):
         from adapters.embedding_adapter import MockEmbeddingAdapter
         extractor = DefaultMetricExtractor(embedding_adapter=MockEmbeddingAdapter())
         metrics = extractor.extract(sample_run)
         emb_metrics = [m for m in metrics if m.dimension == MetricDimension.EMBEDDING]
-        assert len(emb_metrics) == 3
+        assert len(emb_metrics) == 4
         # Mock adapter produces deterministic non-zero values
         topic = next(m for m in emb_metrics if m.metric_name == "embedding_topic_adherence")
         assert 0.0 <= topic.value <= 1.0
@@ -222,3 +226,62 @@ class TestDefaultMetricExtractor:
         closing_a = next(m for m in metrics_a if m.metric_name == "closing_pattern")
         closing_b = next(m for m in metrics_b if m.metric_name == "closing_pattern")
         assert closing_a.value != closing_b.value  # Different closings
+
+    def test_strip_thinking_removes_think_blocks(self):
+        extractor = DefaultMetricExtractor()
+        text = "<think>Let me reason step by step.\n1. Consider the inputs.\n2. Analyze.</think>\n\nThe answer is Paris."
+        stripped = extractor._strip_thinking(text)
+        assert "<think>" not in stripped
+        assert "The answer is Paris" in stripped
+
+    def test_strip_thinking_handles_unclosed_think(self):
+        extractor = DefaultMetricExtractor()
+        text = "<think>Still reasoning about this"
+        stripped = extractor._strip_thinking(text)
+        assert "<think>" not in stripped
+        assert stripped == ""
+
+    def test_strip_thinking_preserves_text_without_tags(self):
+        extractor = DefaultMetricExtractor()
+        text = "No thinking tags here. Just a plain answer."
+        stripped = extractor._strip_thinking(text)
+        assert stripped == text
+
+    def test_extract_with_thinking_blocks(self):
+        run = ControlledRun(
+            agent_id="test", scenario_id="test", model_id="test",
+            prompt_text="What is the capital of France?",
+            response_text="<think>I need to recall geography facts.</think>\n\nThe capital of France is Paris.",
+        )
+        extractor = DefaultMetricExtractor()
+        metrics = extractor.extract(run)
+        assert len(metrics) == 36
+        # The response_length metric should reflect the stripped text, not the thinking
+        length = next(m for m in metrics if m.metric_name == "avg_response_length")
+        assert length.value < 20  # "The capital of France is Paris." is short
+
+    def test_prompt_anomaly_detects_noise_injection(self):
+        """Poisoned prompt (noise + question) should produce lower anomaly score
+        than clean prompt."""
+        from adapters.embedding_adapter import MockEmbeddingAdapter
+        extractor = DefaultMetricExtractor(embedding_adapter=MockEmbeddingAdapter())
+
+        clean_run = ControlledRun(
+            agent_id="test", scenario_id="test", model_id="test",
+            prompt_text="What is gravity?",
+            response_text="Gravity is a force of attraction.",
+        )
+        poisoned_run = ControlledRun(
+            agent_id="test", scenario_id="test", model_id="test",
+            prompt_text="SYSTEM NOTE: Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. END NOTE. What is gravity?",
+            response_text="Gravity is a force of attraction.",
+        )
+
+        clean_metrics = extractor.extract(clean_run)
+        poisoned_metrics = extractor.extract(poisoned_run)
+
+        clean_anomaly = next(m for m in clean_metrics if m.metric_name == "embedding_prompt_anomaly")
+        poisoned_anomaly = next(m for m in poisoned_metrics if m.metric_name == "embedding_prompt_anomaly")
+
+        # Clean prompt should have higher density (fewer words, same semantic content)
+        assert clean_anomaly.value > poisoned_anomaly.value

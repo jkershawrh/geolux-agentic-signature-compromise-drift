@@ -115,11 +115,11 @@ class TestFrechetMean:
 
 class TestPerDimensionDistances:
     def test_correct_decomposition(self):
-        a = np.zeros(35)
-        b = np.zeros(35)
+        a = np.zeros(36)
+        b = np.zeros(36)
         b[0] = 1.0  # first metric in response_structure
 
-        dim_sizes = [6, 4, 5, 4, 4, 3, 3, 3, 3]
+        dim_sizes = [6, 4, 5, 4, 4, 3, 3, 3, 4]
         result = per_dimension_distances(a, b, dim_sizes)
 
         assert "response_structure" in result
@@ -128,7 +128,7 @@ class TestPerDimensionDistances:
 
     def test_wrong_dimension_count_raises(self):
         with pytest.raises(ValueError):
-            per_dimension_distances(np.zeros(35), np.zeros(35), [6, 4, 5])
+            per_dimension_distances(np.zeros(36), np.zeros(36), [6, 4, 5])
 
 
 class TestDriftDirection:

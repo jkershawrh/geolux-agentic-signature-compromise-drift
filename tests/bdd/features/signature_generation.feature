@@ -8,7 +8,7 @@ Feature: Agent Signature Generation
     And 5 controlled runs on the "healthy_baseline" scenario
     When a baseline signature is computed
     Then the signature has a stability score above 0.5
-    And the signature embedding dimension is 35
+    And the signature embedding dimension is 36
     And the signature contains a metric tensor
 
   Scenario: Different agents produce distinct signatures

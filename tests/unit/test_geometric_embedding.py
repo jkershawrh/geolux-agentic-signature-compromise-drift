@@ -24,7 +24,7 @@ class TestMetricsToVector:
     def test_produces_correct_length(self, metric_extractor, sample_run):
         metrics = metric_extractor.extract(sample_run)
         vec = metrics_to_vector(metrics)
-        assert len(vec) == 35
+        assert len(vec) == 36
 
     def test_values_from_normalized(self, metric_extractor, sample_run):
         metrics = metric_extractor.extract(sample_run)
@@ -84,7 +84,7 @@ class TestMetricVectorBuilder:
         builder.add_metrics(metrics)
 
         centroid = builder.get_centroid()
-        assert len(centroid) == 35
+        assert len(centroid) == 36
         assert builder.sample_count == 2
 
     def test_covariance_needs_two(self, metric_extractor, sample_run):
@@ -98,25 +98,25 @@ class TestMetricVectorBuilder:
         for _ in range(5):
             builder.add_metrics(metric_extractor.extract(sample_run))
         cov = builder.get_covariance()
-        assert cov.shape == (35, 35)
+        assert cov.shape == (36, 36)
 
     def test_history_bounds(self, metric_extractor, sample_run):
         builder = MetricVectorBuilder()
         builder.add_metrics(metric_extractor.extract(sample_run))
         lo, hi = builder.get_history_bounds()
-        assert len(lo) == 35
-        assert len(hi) == 35
+        assert len(lo) == 36
+        assert len(hi) == 36
         assert all(lo <= hi)
 
 
 class TestPCAProjection:
     def test_pca_project_reduces_dimensions(self):
-        vectors = np.random.RandomState(42).rand(20, 35)
+        vectors = np.random.RandomState(42).rand(20, 36)
         projected, pca_model = pca_project(vectors, n_components=6)
         assert projected.shape == (20, 6)
 
     def test_project_point_pca_consistent(self):
-        vectors = np.random.RandomState(42).rand(20, 35)
+        vectors = np.random.RandomState(42).rand(20, 36)
         projected, pca_model = pca_project(vectors, n_components=6)
         # Project the first vector individually — should match batch result
         single = project_point_pca(vectors[0], pca_model)

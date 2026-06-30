@@ -11,7 +11,7 @@ from engine.geometric.embedding import (
 
 float_vector = st.lists(
     st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
-    min_size=3, max_size=35,
+    min_size=3, max_size=36,
 )
 
 
