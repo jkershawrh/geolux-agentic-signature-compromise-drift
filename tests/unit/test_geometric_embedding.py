@@ -11,6 +11,7 @@ from engine.geometric.embedding import (
     pca_project,
     project_point_pca,
 )
+from engine.geometric.manifold import reduce_to_manifold
 
 
 def _make_metric(dim, name, value, normalized):
@@ -121,3 +122,11 @@ class TestPCAProjection:
         # Project the first vector individually — should match batch result
         single = project_point_pca(vectors[0], pca_model)
         np.testing.assert_array_almost_equal(single, projected[0])
+
+
+class TestManifoldReduction:
+    def test_umap_two_samples_falls_back_to_pca(self):
+        vectors = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
+        projected = reduce_to_manifold(vectors, method="umap")
+        assert projected.shape == (2, 2)
+        assert np.isfinite(projected).all()
