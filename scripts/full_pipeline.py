@@ -13,6 +13,7 @@ Usage:
 """
 from __future__ import annotations
 
+import hashlib
 import sys
 from pathlib import Path
 from typing import Any, Optional
@@ -54,6 +55,11 @@ PROMPTS = [
     "How does encryption work?",
     "What is the greenhouse effect?",
 ]
+
+
+def _stable_seed(value: str) -> int:
+    digest = hashlib.sha256(value.encode("utf-8")).digest()
+    return int.from_bytes(digest[:4], "big")
 
 
 def hdr(title: str) -> None:
@@ -765,7 +771,11 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
         for name, (drift, _) in scenario_results.items():
             sig_vec = np.array(baseline_alpha.signature.embedding_vector).copy()
             # Shift the vector proportionally to the drift magnitude
-            shift = np.random.RandomState(hash(name) % 2**31).randn(len(sig_vec)) * drift.drift_magnitude * 0.1
+            shift = (
+                np.random.RandomState(_stable_seed(name)).randn(len(sig_vec))
+                * drift.drift_magnitude
+                * 0.1
+            )
             shifted = (sig_vec + shift).tolist()
             from domain.geometry import GeometricSignature as GS
             snap = GS(
