@@ -43,6 +43,7 @@ testpaths = ["tests"]
 markers = [
     "integration: tests requiring real Claude API calls (ANTHROPIC_API_KEY)",
     "slow: tests that take >10s to run",
+    "regression: CI guards for headline metric pipelines (pre-registered bounds)",
 ]
 filterwarnings = ["ignore::DeprecationWarning"]
 
