@@ -17,14 +17,14 @@ class TestLSHIndex:
         assert "agent-1" in candidates
 
     def test_similar_vectors_same_bucket(self):
-        lsh = LSHIndex(n_planes=4)  # fewer planes = larger buckets
+        lsh = LSHIndex(n_planes=4)
         v1 = np.array([0.5] * 32)
         v2 = np.array([0.51] * 32)
         lsh.register("a", v1)
         bucket_a = lsh._hash_vector(v1)
         bucket_b = lsh._hash_vector(v2)
-        # Very similar vectors should often land in same bucket
-        # (not guaranteed with 4 planes but likely)
+        # With only 4 planes, identical-ish vectors usually share a bucket
+        assert bucket_a == bucket_b
 
     def test_different_vectors_different_buckets(self):
         lsh = LSHIndex(n_planes=8)

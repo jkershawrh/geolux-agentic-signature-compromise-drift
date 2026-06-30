@@ -20,7 +20,7 @@ from adapters.metric_extractor import DefaultMetricExtractor
 from domain.models import AgentProfile
 from engine.geometric.distance import euclidean_distance
 from engine.geometric.embedding import metrics_to_vector
-from engine.embedding_signature import EmbeddingSignatureGenerator
+from engine.embedding_signature import EmbeddingSignatureGenerator, compute_eer
 from engine.reducibility_analyzer import ReducibilityAnalyzer
 from scripts.identity_validation import (
     AGENT_DEFS,
@@ -168,38 +168,26 @@ def run_embedding_validation(use_maas: bool = False) -> None:
         dists = [euclidean_distance(v, metric_centroids[aid]) for v in train_metric]
         metric_train_dists[aid] = dists
 
-    # Shared PCA for embeddings — fit on ALL agents' train embeddings together
-    # so all agents are projected into the same space
-    from sklearn.decomposition import PCA
+    # Shared PCA for embeddings — fit via engine (same path as API/pipeline)
+    train_by_agent = {aid: response_texts[aid][:n_train] for aid in agent_ids}
+    emb_gen.fit_shared(train_by_agent)
+    space = emb_gen.shared_space
+    n_comp = space.n_components
+    print(f"  Shared PCA: {n_comp} components, {space.explained_variance * 100:.1f}% variance")
 
-    all_train_embeddings = []
-    all_train_labels = []
-    for aid in agent_ids:
-        train_texts = response_texts[aid][:n_train]
-        for t in train_texts:
-            emb = emb_gen._adapter.embed(t)
-            all_train_embeddings.append(emb)
-            all_train_labels.append(aid)
-
-    all_emb_matrix = np.array(all_train_embeddings)
-    n_comp = min(20, all_emb_matrix.shape[0] - 1, all_emb_matrix.shape[1])
-    shared_pca = PCA(n_components=n_comp)
-    all_projected = shared_pca.fit_transform(all_emb_matrix)
-    print(f"  Shared PCA: {n_comp} components, {sum(shared_pca.explained_variance_ratio_)*100:.1f}% variance")
-
-    # Build per-agent embedding centroids in the shared PCA space
+    embedding_baselines = {}
     embedding_centroids = {}
-    idx = 0
+    embedding_train_dists = {}
     for aid in agent_ids:
-        n = n_train
-        agent_projected = all_projected[idx:idx+n]
-        embedding_centroids[aid] = agent_projected.mean(axis=0)
-        emb_dists = [euclidean_distance(v, embedding_centroids[aid]) for v in agent_projected]
-        embedding_train_dists[aid] = emb_dists
-        idx += n
+        bl = emb_gen.generate_baseline(aid, train_by_agent[aid])
+        embedding_baselines[aid] = bl
+        embedding_centroids[aid] = np.array(bl.centroid)
+        embedding_train_dists[aid] = [
+            euclidean_distance(emb_gen.project(t, bl), embedding_centroids[aid])
+            for t in train_by_agent[aid]
+        ]
 
-    # Store shared PCA for projecting test data
-    _shared_pca = shared_pca
+    _ref_baseline = embedding_baselines[agent_ids[0]]
 
     # Per-agent normalization stats
     metric_stats = {}  # aid -> (mean, std)
@@ -257,7 +245,7 @@ def run_embedding_validation(use_maas: bool = False) -> None:
         test_projs = []
         for t in test_texts:
             emb = emb_gen._adapter.embed(t)
-            proj = _shared_pca.transform(emb.reshape(1, -1))[0]
+            proj = emb_gen.project_vector(emb, _ref_baseline)
             test_projs.append(proj)
         test_emb_centroid = np.mean(test_projs, axis=0)
         best_embed_id = min(
@@ -303,7 +291,7 @@ def run_embedding_validation(use_maas: bool = False) -> None:
 
             # Embedding-only per-run (shared PCA space)
             emb_raw = emb_gen._adapter.embed(txt)
-            proj = _shared_pca.transform(emb_raw.reshape(1, -1))[0]
+            proj = emb_gen.project_vector(emb_raw, _ref_baseline)
             best_e = min(
                 agent_ids,
                 key=lambda x: euclidean_distance(proj, embedding_centroids[x]),
@@ -443,8 +431,8 @@ def run_embedding_validation(use_maas: bool = False) -> None:
         texts_b = all_texts[aid_b]
         embs_a = np.array([emb_gen._adapter.embed(t) for t in texts_a])
         embs_b = np.array([emb_gen._adapter.embed(t) for t in texts_b])
-        proj_a = _shared_pca.transform(embs_a)
-        proj_b = _shared_pca.transform(embs_b)
+        proj_a = space.transform_batch(embs_a)
+        proj_b = space.transform_batch(embs_b)
         centroid_a_emb = proj_a.mean(axis=0)
         centroid_b_emb = proj_b.mean(axis=0)
         emb_dist = euclidean_distance(centroid_a_emb, centroid_b_emb)
@@ -506,7 +494,7 @@ def run_embedding_validation(use_maas: bool = False) -> None:
                 vec = test_metric_vecs[run_idx]
                 txt = test_texts[run_idx]
                 emb_raw = emb_gen._adapter.embed(txt)
-                proj = _shared_pca.transform(emb_raw.reshape(1, -1))[0]
+                proj = emb_gen.project_vector(emb_raw, _ref_baseline)
                 sweep_total += 1
                 # Find nearest by weighted score
                 best_cand = None
