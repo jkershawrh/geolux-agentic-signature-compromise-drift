@@ -41,11 +41,11 @@ class SignatureGenerator:
     ) -> GeometricSignature:
         """Generate a geometric signature from multiple runs' metrics.
 
-        Each element of metrics_per_run is the full set of 29 metrics
+        Each element of metrics_per_run is the full set of 36 metrics
         extracted from one controlled run.
 
         If *reducibility_mask* is provided it must have one entry per metric
-        (length 29).  Metrics marked ``False`` (irreducible / noisy) are
+        (length 36).  Metrics marked ``False`` (irreducible / noisy) are
         zeroed out before computing the centroid, covariance, and all
         downstream geometry.  This filters noise from the signature.
         """
