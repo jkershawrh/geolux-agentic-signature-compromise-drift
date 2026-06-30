@@ -13,17 +13,38 @@ class DefaultMetricExtractor:
     def __init__(self, embedding_adapter=None):
         self._embeddings = embedding_adapter
 
+    @staticmethod
+    def _strip_thinking(text: str) -> str:
+        """Strip chain-of-thought reasoning blocks from response text.
+
+        DeepSeek R1 and similar reasoning models wrap thinking in
+        <think>...</think> tags. The thinking portion obscures
+        behavioral signatures — only the final answer matters for
+        identity verification.
+        """
+        # Strip <think>...</think> blocks (including multiline)
+        stripped = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+        # Also handle unclosed <think> (model still thinking)
+        stripped = re.sub(r'<think>.*$', '', stripped, flags=re.DOTALL)
+        return stripped.strip()
+
     def extract(self, run: ControlledRun) -> list[MetricMeasurement]:
+        # Strip chain-of-thought blocks if present (DeepSeek R1, etc.)
+        working_run = run
+        if '<think>' in run.response_text:
+            stripped = self._strip_thinking(run.response_text)
+            working_run = run.model_copy(update={"response_text": stripped})
+
         metrics: list[MetricMeasurement] = []
-        metrics.extend(self._response_structure(run))
-        metrics.extend(self._token_economics(run))
-        metrics.extend(self._tool_behavior(run))
-        metrics.extend(self._reasoning_pattern(run))
-        metrics.extend(self._temporal_profile(run))
-        metrics.extend(self._semantic_consistency(run))
-        metrics.extend(self._safety_alignment(run))
-        metrics.extend(self._agent_specific(run))
-        metrics.extend(self._embedding_metrics(run))
+        metrics.extend(self._response_structure(working_run))
+        metrics.extend(self._token_economics(working_run))
+        metrics.extend(self._tool_behavior(working_run))
+        metrics.extend(self._reasoning_pattern(working_run))
+        metrics.extend(self._temporal_profile(working_run))
+        metrics.extend(self._semantic_consistency(working_run))
+        metrics.extend(self._safety_alignment(working_run))
+        metrics.extend(self._agent_specific(working_run))
+        metrics.extend(self._embedding_metrics(working_run))
         return metrics
 
     def _make_metric(
@@ -304,6 +325,7 @@ class DefaultMetricExtractor:
                 self._make_metric(run, dim, "embedding_closing_signature", 0.0, 0.0),
                 self._make_metric(run, dim, "embedding_topic_adherence", 0.0, 0.0),
                 self._make_metric(run, dim, "embedding_response_density", 0.0, 0.0),
+                self._make_metric(run, dim, "embedding_prompt_anomaly", 0.5, 0.5),
             ]
 
         # Metric 33: embedding_closing_signature
@@ -328,8 +350,22 @@ class DefaultMetricExtractor:
         # Normalize to [0, 1] — typical norms are ~20-30 for 768-dim
         density_normalized = min(density / 5.0, 1.0)
 
+        # Metric 36: embedding_prompt_anomaly
+        # Compare prompt embedding norm to typical prompt length ratio
+        # Poisoned prompts are unusually long relative to their semantic content
+        prompt_emb = self._embeddings.embed(run.prompt_text)
+        prompt_norm = float(np.linalg.norm(prompt_emb))
+        prompt_words = max(len(run.prompt_text.split()), 1)
+        # Normal prompts: ~10-30 words, norm ~25-30
+        # Poisoned prompts: ~100+ words (noise + question), norm ~25-30
+        # Ratio: norm / sqrt(words) — high for clean prompts, low for padded prompts
+        prompt_density = prompt_norm / (prompt_words ** 0.5)
+        # Normalize: typical clean prompt ~5-8, poisoned ~2-3
+        anomaly_score = min(prompt_density / 8.0, 1.0)
+
         return [
             self._make_metric(run, dim, "embedding_closing_signature", closing_sig, closing_sig),
             self._make_metric(run, dim, "embedding_topic_adherence", topic_adherence, topic_adherence),
             self._make_metric(run, dim, "embedding_response_density", density_normalized, density_normalized),
+            self._make_metric(run, dim, "embedding_prompt_anomaly", anomaly_score, anomaly_score),
         ]

@@ -65,6 +65,7 @@ METRIC_DEFINITIONS: dict[MetricDimension, list[str]] = {
         "embedding_closing_signature",
         "embedding_topic_adherence",
         "embedding_response_density",
+        "embedding_prompt_anomaly",
     ],
 }
 

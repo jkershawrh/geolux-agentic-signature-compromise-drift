@@ -162,11 +162,11 @@ class TestMetricDefinitions:
         assert len(ALL_METRIC_NAMES) == len(set(ALL_METRIC_NAMES))
 
     def test_total_metric_count(self):
-        assert len(ALL_METRIC_NAMES) == 35
+        assert len(ALL_METRIC_NAMES) == 36
 
     def test_exclusion_mask_length_matches_metrics(self):
         mask = get_exclusion_mask()
-        assert len(mask) == 35
+        assert len(mask) == 36
 
     def test_exclusion_mask_excludes_none(self):
         mask = get_exclusion_mask()

@@ -135,15 +135,15 @@ that concentrates discriminative signal.
 
 ### Impact
 
-Of the 35 available metrics, 15 have Fisher ratio of zero (identical
-values across agents when served by vLLM). Using all 35 metrics
+Of the 36 available metrics, 15 have Fisher ratio of zero (identical
+values across agents when served by vLLM). Using all 36 metrics
 produces a separation ratio of 1.42. Using only the top 6 Fisher-
 selected metrics produces a separation ratio of 4.28 -- a 3x
 improvement from discarding non-discriminating dimensions.
 
 ### Relation to Embedding Signatures
 
-Fisher metric selection operates on the 35 scalar metrics. It does
+Fisher metric selection operates on the 36 scalar metrics. It does
 not apply to the 20-D embedding signatures, which use PCA for
 dimensionality reduction instead. The two approaches are complementary:
 Fisher selection provides interpretable drift decomposition (which
@@ -202,9 +202,34 @@ The approximations break down when:
 - The manifold has non-trivial topology (e.g., wraparound dimensions)
 
 For the current use case (comparing behavioral signatures of LLM agents
-across 35 metrics and 20-D embeddings), flat-space approximations with
+across 36 metrics and 20-D embeddings), flat-space approximations with
 anisotropic weighting perform well empirically, as validated by the
 3.6% EER achieved on the embedding signatures.
+
+## Identity vs Drift: Separate Verification Paths
+
+A key finding of this research: embeddings and structural metrics serve
+different purposes and should not be fused.
+
+**Identity verification** (Is this the right agent?):
+- Signal: Response embeddings (768-D -> 20-D PCA)
+- EER: 3.6% +/- 1.7%
+- Method: Euclidean distance in shared PCA embedding space
+
+**Drift detection** (Has this agent's behavior changed?):
+- Signal: 36 structural/semantic metrics (Fisher top-6 selected)
+- AUC: 0.71
+- Method: Z-score distance from baseline metric centroid
+
+Fusing these signals (w=0.8 embedding + 0.2 metric) produces 9.6% EER --
+worse than pure embedding (3.6%). The metrics add noise to the identity
+signal because structural features vary with prompt content, while
+embeddings capture semantic identity more stably.
+
+The correct architecture: run both checks independently. Identity verification
+gates access (is this agent authorized?). Drift detection monitors behavior
+(is this agent still operating normally?). A verified agent can still drift;
+a drifted agent might still be the right one.
 
 ## Relationship to Literature
 

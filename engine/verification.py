@@ -37,6 +37,11 @@ class VerificationResult:
     commitment_valid: bool | None  # Hash check (secure path only)
     escalated: bool                # Did fast path escalate to secure?
     details: str
+    # Separate identity and drift assessments
+    identity_verified: bool = True      # Embedding-based: is this the right agent?
+    drift_detected: bool = False        # Metric-based: has behavior changed?
+    identity_distance: float = 0.0      # Embedding distance
+    drift_distance: float = 0.0         # Metric distance
 
 
 class LSHIndex:
@@ -243,8 +248,9 @@ class DualPathVerifier:
             should_escalate = False
 
         if not should_escalate and fast_agent_id:
-            # Fast path succeeds
+            # Fast path succeeds — metric distance determines drift
             confidence = max(0.0, 1.0 - fast_distance / self._fast_threshold)
+            drift_detected = fast_distance > self._fast_threshold * 0.5
             result = VerificationResult(
                 agent_id=fast_agent_id,
                 path_used="fast",
@@ -254,6 +260,8 @@ class DualPathVerifier:
                 commitment_valid=None,
                 escalated=False,
                 details=f"Fast path: bucket {bucket_id}, distance {fast_distance:.4f}",
+                drift_detected=drift_detected,
+                drift_distance=fast_distance,
             )
             return self._apply_embedding_check(result, response_text)
 
@@ -264,6 +272,7 @@ class DualPathVerifier:
                 expected_agent_id, vec, self._secure_tolerance
             )
             confidence = max(0.0, 1.0 - dist / self._secure_tolerance) if is_valid else 0.0
+            drift_detected = dist > self._secure_tolerance * 0.5
             result = VerificationResult(
                 agent_id=expected_agent_id if is_valid else None,
                 path_used="secure",
@@ -273,6 +282,8 @@ class DualPathVerifier:
                 commitment_valid=is_valid,
                 escalated=should_escalate,
                 details=f"Secure path: distance {dist:.4f}, valid={is_valid}",
+                drift_detected=drift_detected,
+                drift_distance=float(dist),
             )
             return self._apply_embedding_check(result, response_text)
 
@@ -289,6 +300,7 @@ class DualPathVerifier:
 
         if best_id:
             confidence = max(0.0, 1.0 - best_dist / self._secure_tolerance)
+            drift_detected = best_dist > self._secure_tolerance * 0.5
             result = VerificationResult(
                 agent_id=best_id,
                 path_used="secure",
@@ -298,6 +310,8 @@ class DualPathVerifier:
                 commitment_valid=True,
                 escalated=should_escalate,
                 details=f"Secure path: identified {best_id}, distance {best_dist:.4f}",
+                drift_detected=drift_detected,
+                drift_distance=float(best_dist),
             )
             return self._apply_embedding_check(result, response_text)
 
@@ -310,6 +324,8 @@ class DualPathVerifier:
             commitment_valid=False,
             escalated=should_escalate,
             details="Secure path: no matching agent found",
+            identity_verified=False,
+            drift_distance=float(fast_distance),
         )
 
     def _apply_embedding_check(
@@ -317,7 +333,9 @@ class DualPathVerifier:
     ) -> VerificationResult:
         """If embedding baselines are available, validate response_text against them.
 
+        Sets identity_verified and identity_distance based on the embedding check.
         On failure, halve the confidence and mark path_used with '+embedding_fail'.
+        Identity verification (embedding) is independent of drift detection (metrics).
         """
         if (
             response_text is None
@@ -342,8 +360,25 @@ class DualPathVerifier:
                     result.details
                     + f" | embedding check failed (dist={emb_dist:.4f})"
                 ),
+                identity_verified=False,
+                drift_detected=result.drift_detected,
+                identity_distance=float(emb_dist),
+                drift_distance=result.drift_distance,
             )
-        return result
+        return VerificationResult(
+            agent_id=result.agent_id,
+            path_used=result.path_used,
+            confidence=result.confidence,
+            distance=result.distance,
+            bucket_id=result.bucket_id,
+            commitment_valid=result.commitment_valid,
+            escalated=result.escalated,
+            details=result.details + f" | embedding check passed (dist={emb_dist:.4f})",
+            identity_verified=True,
+            drift_detected=result.drift_detected,
+            identity_distance=float(emb_dist),
+            drift_distance=result.drift_distance,
+        )
 
     @property
     def lsh_index(self) -> LSHIndex:
