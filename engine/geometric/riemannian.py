@@ -42,14 +42,23 @@ def local_metric_tensor(vectors: np.ndarray, point: np.ndarray,
     following the approach from Riemannian-Geometric Fingerprints (arxiv 2506.22802).
     The local metric tensor captures how the geometry varies across the manifold.
     """
+    if vectors.ndim != 2:
+        raise ValueError("vectors must be a 2D array")
+    if vectors.shape[0] < 2:
+        return np.eye(vectors.shape[1])
+
     distances = np.linalg.norm(vectors - point, axis=1)
     k = min(k_neighbors, len(vectors))
     nearest_idx = np.argsort(distances)[:k]
     neighbors = vectors[nearest_idx]
+    if neighbors.shape[0] < 2:
+        return np.eye(vectors.shape[1])
 
     local_cov = np.cov(neighbors, rowvar=False)
     if local_cov.ndim == 0:
         local_cov = np.array([[local_cov]])
+    if not np.isfinite(local_cov).all():
+        return np.eye(vectors.shape[1])
 
     return compute_metric_tensor(local_cov, regularization)
 

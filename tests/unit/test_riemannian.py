@@ -54,6 +54,13 @@ class TestLocalMetricTensor:
         tensor = local_metric_tensor(vectors, point, k_neighbors=100)
         assert tensor.shape == (2, 2)
 
+    def test_single_sample_returns_finite_identity(self):
+        vectors = np.array([[1.0, 2.0, 3.0]])
+        point = np.array([1.0, 2.0, 3.0])
+        tensor = local_metric_tensor(vectors, point)
+        np.testing.assert_array_almost_equal(tensor, np.eye(3))
+        assert np.isfinite(tensor).all()
+
 
 class TestAnisotropyEstimate:
     def test_identity_metric_zero_anisotropy(self):

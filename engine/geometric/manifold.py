@@ -23,6 +23,8 @@ def reduce_to_manifold(vectors: np.ndarray,
     if method == "pca":
         return _pca_reduce(vectors, n_components)
     elif method == "umap":
+        if vectors.shape[0] < 3:
+            return _pca_reduce(vectors, n_components)
         return _umap_reduce(vectors, n_components, random_state)
     else:
         raise ValueError(f"Unknown method: {method}. Use 'umap' or 'pca'.")

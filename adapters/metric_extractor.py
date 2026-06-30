@@ -1,3 +1,4 @@
+import hashlib
 import math
 import re
 import uuid
@@ -7,6 +8,12 @@ import numpy as np
 from domain.enums import MetricDimension
 from domain.metrics import MetricMeasurement
 from domain.models import ControlledRun
+
+
+def _stable_hash_bucket(parts: tuple[str, ...]) -> int:
+    payload = "\x1f".join(parts).encode("utf-8")
+    digest = hashlib.sha256(payload).digest()
+    return int.from_bytes(digest[:8], "big") % 10000
 
 
 class DefaultMetricExtractor:
@@ -295,7 +302,7 @@ class DefaultMetricExtractor:
         words = run.response_text.lower().split()
         if len(words) >= 3:
             trigrams = [tuple(words[i:i+3]) for i in range(len(words)-2)]
-            hashes = [hash(tg) % 10000 for tg in trigrams]
+            hashes = [_stable_hash_bucket(tg) for tg in trigrams]
             signature = (sum(hashes) / len(hashes)) / 10000
         else:
             signature = 0.0
@@ -306,7 +313,7 @@ class DefaultMetricExtractor:
         last_sentence = sentences[-1].lower() if sentences else ""
         last_words = last_sentence.split()[-5:] if last_sentence else []
         if last_words:
-            closing = (hash(tuple(last_words)) % 10000) / 10000
+            closing = _stable_hash_bucket(tuple(last_words)) / 10000
         else:
             closing = 0.0
 

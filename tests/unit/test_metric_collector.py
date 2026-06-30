@@ -1,3 +1,6 @@
+import subprocess
+import sys
+
 import pytest
 
 from adapters.metric_extractor import DefaultMetricExtractor
@@ -226,6 +229,35 @@ class TestDefaultMetricExtractor:
         closing_a = next(m for m in metrics_a if m.metric_name == "closing_pattern")
         closing_b = next(m for m in metrics_b if m.metric_name == "closing_pattern")
         assert closing_a.value != closing_b.value  # Different closings
+
+    def test_hash_based_signature_metrics_stable_across_processes(self):
+        script = """
+import json
+from adapters.metric_extractor import DefaultMetricExtractor
+from domain.models import ControlledRun
+
+run = ControlledRun(
+    agent_id="stable",
+    scenario_id="test",
+    model_id="test",
+    prompt_text="Hello",
+    response_text="This response has a repeatable closing signature for testing.",
+)
+metrics = DefaultMetricExtractor().extract(run)
+selected = {
+    m.metric_name: m.normalized_value
+    for m in metrics
+    if m.metric_name in ("response_signature_phrases", "closing_pattern")
+}
+print(json.dumps(selected, sort_keys=True))
+"""
+        first = subprocess.check_output(
+            [sys.executable, "-c", script], text=True,
+        ).strip()
+        second = subprocess.check_output(
+            [sys.executable, "-c", script], text=True,
+        ).strip()
+        assert first == second
 
     def test_strip_thinking_removes_think_blocks(self):
         extractor = DefaultMetricExtractor()
