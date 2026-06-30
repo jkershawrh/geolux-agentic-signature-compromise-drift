@@ -93,3 +93,23 @@ class MockEmbeddingAdapter:
         if norm_a == 0 or norm_b == 0:
             return 0.0
         return float(np.dot(emb_a, emb_b) / (norm_a * norm_b))
+
+
+class SeparatingMockEmbeddingAdapter(MockEmbeddingAdapter):
+    """Mock adapter with an agent-specific linear offset for CI regression tests.
+
+    Texts containing ``agent:<id>`` (e.g. ``agent:alpha``) receive a large
+    offset in the first dimensions so shared PCA can separate agents reliably.
+    Without this, hash-only mocks sit at chance EER (~0.5).
+    """
+
+    _AGENTS = ("alpha", "beta", "gamma", "delta")
+
+    def embed(self, text: str) -> np.ndarray:
+        vec = super().embed(text)
+        lower = text.lower()
+        for i, agent in enumerate(self._AGENTS):
+            if f"agent:{agent}" in lower:
+                vec[:24] += 8.0 * (i + 1)
+                break
+        return vec
