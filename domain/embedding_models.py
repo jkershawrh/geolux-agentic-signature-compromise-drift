@@ -15,6 +15,7 @@ class EmbeddingBaseline(BaseModel):
     within_mean: float
     within_std: float
     pca_components: list[list[float]]
+    pca_mean: list[float]
     explained_variance: float
     n_components: int
     n_responses: int
