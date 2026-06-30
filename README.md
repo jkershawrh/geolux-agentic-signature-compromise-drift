@@ -16,7 +16,7 @@ Behavioral baseline monitoring for AI agents. Extracts telemetry fingerprints fr
 | ASC-Bench drift AUC | 0.71 |
 | Metrics | 36 across 9 dimensions + 20-D embeddings |
 | Models validated | 7 (Granite, Phi-4, Llama Scout, Qwen3, DeepSeek, GPT-OSS, CodeLlama) |
-| Tests | 375 pytest + 30 BDD (pre-commit enforced) |
+| Tests | 382 pytest + 30 BDD (pre-commit enforced) |
 
 ## Quick Start
 
@@ -57,7 +57,7 @@ adapters/        External integrations
 db/              SQLite persistence (SQLAlchemy ORM, 11 tables)
 api/             FastAPI REST API (6 endpoints)
 scripts/         CLI tools and research studies (12 scripts)
-tests/           375 tests (unit, property, contract) + 30 BDD scenarios
+tests/           382 tests (unit, property, contract, regression) + 30 BDD scenarios
 ```
 
 ## Two Verification Paths
@@ -131,7 +131,7 @@ Certification battery: self-consistency, discriminability (Fisher), canary compl
 Every commit automatically runs:
 - Trailing whitespace, YAML validation, private key detection
 - Ruff lint (E, F, I rules)
-- 375 pytest tests
+- 382 pytest tests (including regression guards)
 - 30 BDD scenarios
 
 Commit is blocked if any hook fails.
