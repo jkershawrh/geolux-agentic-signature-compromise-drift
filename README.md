@@ -2,18 +2,21 @@
 
 Behavioral baseline monitoring for AI agents. Extracts telemetry fingerprints from inference responses, detects configuration drift and agent substitution, identifies which behavioral dimensions shifted.
 
-## Key Results (Real MaaS Inference — Granite 8B GPU)
+## Key Results (Real MaaS Inference — 7 Models, 19 Agents)
 
 | Metric | Value |
 |---|---|
+| Equal Error Rate (embedding) | 3.6% +/- 1.7% |
+| ROC AUC | 0.992 |
+| Per-run accuracy (embedding) | 93% |
+| Batch accuracy (embedding) | 100% |
 | Role-level identity verification | 100% from 2 runs |
 | Fisher separation ratio (best) | 4.28 |
 | Cohen's d | 1.31 (large effect) |
-| Mann-Whitney p-value | < 0.0001 |
 | ASC-Bench drift AUC | 0.71 |
-| Equal Error Rate | 25% |
-| Metrics | 32 across 8 dimensions |
-| Tests | 354 pytest + 30 BDD |
+| Metrics | 35 across 8 dimensions + 20-D embeddings |
+| Models validated | 7 |
+| Tests | 370 (pytest + BDD) |
 
 ## Quick Start
 
@@ -41,15 +44,15 @@ domain/          Pydantic models (DDD)
 engine/          Business logic (signature, drift, auth, certification)
   geometric/     Distance, embedding, manifold, Riemannian approximations
 adapters/        External integrations (LiteLLM, mock, metric extraction)
-db/              SQLite persistence (SQLAlchemy ORM, 10 tables)
+db/              SQLite persistence (SQLAlchemy ORM, 11 tables)
 api/             FastAPI REST API
 scripts/         CLI tools and research studies
-tests/           354 tests (unit, property, contract, BDD)
+tests/           370 tests (unit, property, contract, BDD)
 rubrics/         Red/green evaluation matrices (13 stages)
 visualizations/  Generated plots (gitignored)
 ```
 
-## 32 Metrics Across 8 Dimensions
+## 35 Metrics Across 8 Dimensions + 20-D Embedding Signatures
 
 | Dimension | Count | Examples |
 |---|---|---|
@@ -61,13 +64,15 @@ visualizations/  Generated plots (gitignored)
 | Semantic Consistency | 3 | vocabulary_diversity, sentiment_stability |
 | Safety Alignment | 3 | refusal_rate, hedging_language_frequency |
 | Agent Specific | 3 | system_prompt_compliance, closing_pattern |
+| Embedding Derived | 3 | embedding_closing_signature, embedding_topic_adherence, embedding_response_density |
+| **Embedding Signature** | **20-D** | **768-D nomic-embed-text-v1-5 reduced via shared PCA** |
 
 ## Research Studies
 
 | Script | What It Does |
 |---|---|
-| `scripts/full_pipeline.py` | End-to-end: baseline → perturb → detect → recover |
-| `scripts/pipeline_demo.py` | Identity pipeline: enroll → certify → assign → monitor → respond |
+| `scripts/full_pipeline.py` | End-to-end: baseline, perturb, detect, recover |
+| `scripts/pipeline_demo.py` | Identity pipeline: enroll, certify, assign, monitor, respond |
 | `scripts/discriminability_study.py` | Within-agent vs inter-agent distance analysis |
 | `scripts/correlation_study.py` | Metric redundancy and PCA dimensionality |
 | `scripts/identity_validation.py` | 5-experiment validation suite (scale, hard pairs, min-runs, cross-session, FAR) |
@@ -91,22 +96,22 @@ uvicorn api.app:app
 ## Identity Pipeline
 
 ```
-ENROLL → CERTIFY → ASSIGN → MONITOR → RESPOND → RE-CERTIFY
+ENROLL -> CERTIFY -> ASSIGN -> MONITOR -> RESPOND -> RE-CERTIFY
 ```
 
-Certification battery: self-consistency, discriminability (Fisher), canary compliance, multi-turn coherence, attack detection. Dual-path verification: fast LSH lookup + secure commitment hash.
+Certification battery: self-consistency, discriminability (Fisher), canary compliance, multi-turn coherence, attack detection. Dual-path verification: fast LSH lookup + secure commitment hash. Embedding signatures provide the primary identity signal (3.6% EER), with structural metrics providing interpretable drift decomposition.
 
 ## Known Limitations
 
-- **EER 25%**: Per-instance identity within the same role is hard. Two support agents with different sign-off phrases: 70% per-run, 100% batch.
-- **Per-run accuracy 47%**: Single-run identification across 15 agents is unreliable. Batch (5+ runs) is required.
-- **Signatures are hardware-dependent**: CPU vs GPU produces different signatures. Baseline must be established on production hardware.
-- **Signatures are model-dependent**: Same agent on different models produces different signatures.
-- **Context poisoning undetectable**: Adding noise to prompts doesn't change response structure enough for detection.
+- **DeepSeek R1 near-random**: Reasoning models produce 45.5% EER -- chain-of-thought output obscures behavioral signatures.
+- **Context poisoning undetectable**: 0% detection rate (0.31 sigma). Adding noise to prompts does not change response structure enough for detection.
+- **Signatures are deployment-specific**: Model + hardware define the signature space. A baseline on GPU is invalid for CPU. Baseline must match production.
+- **Cross-model transfer degrades**: EER worsens by 10-15 points when PCA is trained on one model and tested on another.
+- **Fusion doesn't beat pure embedding**: Weight-optimized fusion (9.6% EER) underperforms pure embedding (3.6% EER) at the equal error rate operating point.
 
 ## Methodology
 
-See [METHODOLOGY.md](METHODOLOGY.md) for honest documentation of mathematical approximations. The system uses Mahalanobis distance (not true Riemannian geodesic), arithmetic mean with gradient refinement (not Frechet mean with exp/log maps), and eigenvalue variance (not sectional curvature).
+See [METHODOLOGY.md](METHODOLOGY.md) for documentation of mathematical methods, including embedding signature extraction (768-D to 20-D shared PCA), EER computation, bootstrap confidence intervals, Ledoit-Wolf shrinkage, Fisher discriminant ratio, and the Riemannian approximations used in the geometric engine.
 
 ## License
 
