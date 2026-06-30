@@ -2,7 +2,7 @@
 """Visualize computational reducibility analysis.
 
 Generates:
-  - Reducibility spectrum: horizontal bar chart of all 29 metrics sorted by
+  - Reducibility spectrum: horizontal bar chart of all 36 metrics sorted by
     predictability score, color-coded by reducibility class.
 
 Usage:
@@ -84,7 +84,7 @@ def _build_reducibility_data():
 
 
 def plot_reducibility_spectrum(classifications) -> str:
-    """Horizontal bar chart of all 29 metrics sorted by predictability score."""
+    """Horizontal bar chart of all 36 metrics sorted by predictability score."""
     # Sort by predictability (high to low)
     sorted_cls = sorted(classifications, key=lambda c: c.predictability_score, reverse=True)
 
@@ -120,7 +120,7 @@ def plot_reducibility_spectrum(classifications) -> str:
     ax.invert_yaxis()  # highest predictability at top
     ax.set_xlabel("Predictability Score", fontsize=11)
     ax.set_xlim(0, 1.15)
-    ax.set_title("Computational Reducibility Spectrum\n(29 Metrics Sorted by Predictability)",
+    ax.set_title("Computational Reducibility Spectrum\n(36 Metrics Sorted by Predictability)",
                  fontsize=14, fontweight="bold")
 
     # Legend
