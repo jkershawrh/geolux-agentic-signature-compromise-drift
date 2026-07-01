@@ -1,14 +1,17 @@
 import { motion } from 'motion/react';
+import fingerprintData from '../data/agent_fingerprints.json';
+
+const h = fingerprintData.headline_numbers;
 
 const stats = [
-  { value: '3.6%', label: 'EER', color: 'var(--rh-red)' },
-  { value: '0.992', label: 'ROC AUC', color: 'var(--rh-teal)' },
-  { value: '93%', label: 'Per-Run', color: 'var(--rh-green)' },
-  { value: '100%', label: 'Batch', color: 'var(--rh-blue)' },
-  { value: '7', label: 'Models', color: 'var(--rh-purple)' },
-  { value: '19', label: 'Agents', color: 'var(--rh-orange)' },
-  { value: '382', label: 'Tests', color: 'var(--rh-teal)' },
-  { value: '36', label: 'Metrics', color: 'var(--rh-yellow)' },
+  { value: `${h.eer}%`, label: 'EER', color: 'var(--rh-red)' },
+  { value: h.auc.toFixed(3), label: 'ROC AUC', color: 'var(--rh-teal)' },
+  { value: `${h.per_run_accuracy}%`, label: 'Per-Run', color: 'var(--rh-green)' },
+  { value: `${h.batch_accuracy}%`, label: 'Batch', color: 'var(--rh-blue)' },
+  { value: String(h.models_validated), label: 'Models', color: 'var(--rh-purple)' },
+  { value: String(h.agents_tested), label: 'Agents', color: 'var(--rh-orange)' },
+  { value: String(h.tests), label: 'Tests', color: 'var(--rh-teal)' },
+  { value: String(h.metrics), label: 'Metrics', color: 'var(--rh-yellow)' },
 ];
 
 export function Act6Results() {
@@ -93,6 +96,38 @@ export function Act6Results() {
           </motion.div>
         ))}
       </div>
+
+      {/* Additional detail stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.2, duration: 0.5 }}
+        style={{
+          display: 'flex',
+          gap: 16,
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ textAlign: 'center', padding: '8px 16px' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Red Hat Display', sans-serif", color: 'var(--rh-teal)' }}>
+            {h.fisher_ratio.toFixed(2)}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: 1, textTransform: 'uppercase' }}>Fisher Ratio</div>
+        </div>
+        <div style={{ textAlign: 'center', padding: '8px 16px' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Red Hat Display', sans-serif", color: 'var(--rh-orange)' }}>
+            {h.cohens_d.toFixed(2)}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: 1, textTransform: 'uppercase' }}>Cohen&apos;s d</div>
+        </div>
+        <div style={{ textAlign: 'center', padding: '8px 16px' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Red Hat Display', sans-serif", color: 'var(--rh-red)' }}>
+            {'±'}{h.eer_ci}%
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: 1, textTransform: 'uppercase' }}>EER 95% CI</div>
+        </div>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0 }}

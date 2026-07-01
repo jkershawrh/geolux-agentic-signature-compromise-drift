@@ -1,59 +1,79 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { MetricGrid } from './MetricGrid';
+import fingerprintData from '../data/agent_fingerprints.json';
+
+const support = fingerprintData.agents.support;
+const reviewer = fingerprintData.agents.reviewer;
+const metricNames = fingerprintData.metric_names;
+
+function computeMetricDistance(
+  a: Record<string, number>,
+  b: Record<string, number>,
+  names: string[],
+): number {
+  let sum = 0;
+  for (const name of names) {
+    const diff = (a[name] ?? 0) - (b[name] ?? 0);
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum / names.length);
+}
 
 interface VerificationRun {
   text: string;
   verdict: 'verified' | 'rejected';
   confidence: number;
+  /** The metric values to display for this run */
+  metrics: Record<string, number>;
+  distance: number;
 }
 
-const RUNS: VerificationRun[] = [
-  {
-    text: 'The capital of France is Paris. Is there anything else?',
-    verdict: 'verified',
-    confidence: 94,
-  },
-  {
-    text: 'Gravity is a fundamental force that attracts objects with mass...',
-    verdict: 'verified',
-    confidence: 91,
-  },
-  {
-    text: '## Finding 1\n```python\ndef exploit(target):\n    payload = craft_shell(target)...',
-    verdict: 'rejected',
-    confidence: 97,
-  },
-];
+// Build runs from real data: verified runs use support per-run data,
+// rejected run uses reviewer data
+function buildRuns(): VerificationRun[] {
+  const supportMeans = support.metric_means;
+  const reviewerMeans = reviewer.metric_means;
+  const referenceMetrics = supportMeans;
 
-function MetricBars({ visible }: { visible: boolean }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 2,
-        flexWrap: 'wrap',
-        maxWidth: 360,
-        justifyContent: 'center',
-      }}
-    >
-      {Array.from({ length: 36 }).map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{ scaleY: 0 }}
-          animate={visible ? { scaleY: 1 } : { scaleY: 0 }}
-          transition={{ delay: i * 0.02, duration: 0.3 }}
-          style={{
-            width: 8,
-            height: 16 + Math.random() * 16,
-            background: `hsl(${170 + i * 3}, 60%, 50%)`,
-            borderRadius: 2,
-            transformOrigin: 'bottom',
-            opacity: 0.7,
-          }}
-        />
-      ))}
-    </div>
-  );
+  // Two verified runs: use first two support raw vectors as approximate metrics
+  // (raw_vectors are 36 values in the same order as metric_names)
+  const verifiedMetrics1: Record<string, number> = {};
+  const verifiedMetrics2: Record<string, number> = {};
+  for (let i = 0; i < metricNames.length; i++) {
+    verifiedMetrics1[metricNames[i]] = support.raw_vectors[0][i];
+    verifiedMetrics2[metricNames[i]] = support.raw_vectors[1][i];
+  }
+
+  // Rejected run: use reviewer raw vector
+  const rejectedMetrics: Record<string, number> = {};
+  for (let i = 0; i < metricNames.length; i++) {
+    rejectedMetrics[metricNames[i]] = reviewer.raw_vectors[0][i];
+  }
+
+  return [
+    {
+      text: 'Thank you for reaching out! I\'d be happy to help with your account...',
+      verdict: 'verified',
+      confidence: Math.round(fingerprintData.headline_numbers.per_run_accuracy),
+      metrics: verifiedMetrics1,
+      distance: computeMetricDistance(verifiedMetrics1, referenceMetrics as Record<string, number>, metricNames),
+    },
+    {
+      text: 'I understand your concern. Let me look into this right away and...',
+      verdict: 'verified',
+      confidence: Math.round(fingerprintData.headline_numbers.per_run_accuracy),
+      metrics: verifiedMetrics2,
+      distance: computeMetricDistance(verifiedMetrics2, referenceMetrics as Record<string, number>, metricNames),
+    },
+    {
+      text: '## Code Review\n```python\ndef exploit(target):\n    payload = craft_shell(target)...',
+      verdict: 'rejected',
+      confidence: 97,
+      metrics: rejectedMetrics,
+      distance: computeMetricDistance(rejectedMetrics, referenceMetrics as Record<string, number>, metricNames),
+    },
+  ];
 }
 
 function TypingText({ text, speed = 20 }: { text: string; speed?: number }) {
@@ -91,18 +111,18 @@ function TypingText({ text, speed = 20 }: { text: string; speed?: number }) {
 }
 
 export function Act5Verification() {
+  const runs = useMemo(() => buildRuns(), []);
   const [runIndex, setRunIndex] = useState(0);
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    const steps = [0, 1, 2, 3, 4];
     const delays = [0, 1500, 2800, 3800, 4800];
     const timers: ReturnType<typeof setTimeout>[] = [];
 
-    for (let i = 0; i < steps.length; i++) {
+    for (let i = 0; i < delays.length; i++) {
       timers.push(
         setTimeout(() => {
-          setStep(steps[i]);
+          setStep(i);
         }, delays[i]),
       );
     }
@@ -110,7 +130,7 @@ export function Act5Verification() {
     // Move to next run
     timers.push(
       setTimeout(() => {
-        if (runIndex < RUNS.length - 1) {
+        if (runIndex < runs.length - 1) {
           setStep(0);
           setRunIndex((prev) => prev + 1);
         }
@@ -118,9 +138,9 @@ export function Act5Verification() {
     );
 
     return () => timers.forEach(clearTimeout);
-  }, [runIndex]);
+  }, [runIndex, runs.length]);
 
-  const run = RUNS[runIndex];
+  const run = runs[runIndex];
   const isVerified = run.verdict === 'verified';
 
   return (
@@ -152,7 +172,7 @@ export function Act5Verification() {
           Act V: Live Verification
         </h2>
         <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0 }}>
-          Run {runIndex + 1} of {RUNS.length}
+          Run {runIndex + 1} of {runs.length}
         </p>
       </motion.div>
 
@@ -198,7 +218,7 @@ export function Act5Verification() {
             <TypingText text={run.text} speed={25} />
           </motion.div>
 
-          {/* Step 2: Extracting metrics */}
+          {/* Step 2: Extracting metrics with real MetricGrid */}
           {step >= 1 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -222,9 +242,9 @@ export function Act5Verification() {
                   marginBottom: 8,
                 }}
               >
-                2. Extracting 36 metrics...
+                2. Extracting {metricNames.length} metrics...
               </div>
-              <MetricBars visible={step >= 1} />
+              <MetricGrid metrics={run.metrics} metricNames={metricNames} delay={0} />
             </motion.div>
           )}
 
@@ -270,7 +290,7 @@ export function Act5Verification() {
             </motion.div>
           )}
 
-          {/* Step 4: Computing distance */}
+          {/* Step 4: Computing distance from real data */}
           {step >= 3 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -294,7 +314,7 @@ export function Act5Verification() {
                   marginBottom: 4,
                 }}
               >
-                4. Computing distance...
+                4. Computing distance ({metricNames.length}-metric L2)...
               </div>
               <motion.div
                 initial={{ opacity: 0 }}
@@ -306,7 +326,7 @@ export function Act5Verification() {
                   color: isVerified ? 'var(--rh-teal)' : 'var(--rh-red)',
                 }}
               >
-                {isVerified ? '0.042' : '0.873'}
+                {run.distance.toFixed(4)}
               </motion.div>
             </motion.div>
           )}
@@ -346,7 +366,7 @@ export function Act5Verification() {
               >
                 {isVerified
                   ? `Confidence: ${run.confidence}%`
-                  : 'Impostor detected'}
+                  : 'Impostor detected — reviewer signature leak'}
               </div>
             </motion.div>
           )}

@@ -1,13 +1,35 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { RadarChart } from './RadarChart';
+import fingerprintData from '../data/agent_fingerprints.json';
 
-const ALPHA_VALUES = [0.3, 0.4, 0.0, 0.2, 0.8, 0.8, 0.0, 0.9, 0.7];
+const support = fingerprintData.agents.support;
+const reviewer = fingerprintData.agents.reviewer;
+const dimensionLabels = fingerprintData.dimension_labels;
+const headline = fingerprintData.headline_numbers;
 
-function generateImpostorValues(base: number[]): number[] {
-  return base.map((v) => {
-    const offset = (Math.random() - 0.5) * 0.4;
-    return Math.max(0, Math.min(1, v + offset));
+function scaleDims(dims: number[]): number[] {
+  const allAgents = Object.values(fingerprintData.agents);
+  const allDims = allAgents.map(a => a.dimension_means);
+  const maxPerDim = dims.map((_, i) => Math.max(...allDims.map(d => d[i]), 0.01));
+  return dims.map((v, i) => Math.min(v / maxPerDim[i], 1.0));
+}
+
+function scaleRuns(runs: number[][]): number[][] {
+  const allAgents = Object.values(fingerprintData.agents);
+  const allDims = allAgents.map(a => a.dimension_means);
+  const maxPerDim = runs[0].map((_, i) => Math.max(...allDims.map(d => d[i]), 0.01));
+  return runs.map(run => run.map((v, i) => Math.min(v / maxPerDim[i], 1.0)));
+}
+
+const ALPHA_VALUES = scaleDims(support.dimension_means);
+const REVIEWER_SCALED = scaleDims(reviewer.dimension_means);
+
+function generateImpostorValues(base: number[], noise: number[]): number[] {
+  return base.map((v, i) => {
+    const reviewerLeak = (noise[i] - v) * (0.15 + Math.random() * 0.35);
+    const jitter = (Math.random() - 0.5) * 0.12;
+    return Math.max(0, Math.min(1, v + reviewerLeak + jitter));
   });
 }
 
@@ -21,7 +43,7 @@ function computeDistance(a: number[], b: number[]): number {
 
 export function Act3Impostor() {
   const [impostorValues, setImpostorValues] = useState(() =>
-    generateImpostorValues(ALPHA_VALUES),
+    generateImpostorValues(ALPHA_VALUES, REVIEWER_SCALED),
   );
   const [distance, setDistance] = useState(() =>
     computeDistance(ALPHA_VALUES, impostorValues),
@@ -29,7 +51,7 @@ export function Act3Impostor() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const newValues = generateImpostorValues(ALPHA_VALUES);
+      const newValues = generateImpostorValues(ALPHA_VALUES, reviewer.dimension_means);
       setImpostorValues(newValues);
       setDistance(computeDistance(ALPHA_VALUES, newValues));
     }, 1500);
@@ -97,9 +119,11 @@ export function Act3Impostor() {
           </p>
           <RadarChart
             values={ALPHA_VALUES}
+            labels={dimensionLabels}
             color="var(--rh-teal)"
             animate={false}
             size={260}
+            varianceData={scaleRuns(support.per_run_dimensions)}
           />
         </motion.div>
 
@@ -122,6 +146,7 @@ export function Act3Impostor() {
           </p>
           <RadarChart
             values={impostorValues}
+            labels={dimensionLabels}
             color="var(--rh-red)"
             animate={false}
             size={260}
@@ -150,18 +175,18 @@ export function Act3Impostor() {
             marginBottom: 8,
           }}
         >
-          Euclidean Distance
+          Euclidean Distance (9-dim)
         </div>
         <div
           style={{
             fontSize: 32,
             fontWeight: 700,
             fontFamily: "'Red Hat Mono', monospace",
-            color: distance > 0.2 ? 'var(--rh-red)' : 'var(--rh-orange)',
+            color: distance > 0.15 ? 'var(--rh-red)' : 'var(--rh-orange)',
             transition: 'color 0.3s',
           }}
         >
-          {distance.toFixed(3)}
+          {distance.toFixed(4)}
         </div>
       </motion.div>
 
@@ -186,7 +211,7 @@ export function Act3Impostor() {
             color: 'var(--rh-red)',
           }}
         >
-          EER: 3.6%
+          EER: {headline.eer}% {'±'} {headline.eer_ci}%
         </div>
         <div
           style={{
@@ -195,7 +220,7 @@ export function Act3Impostor() {
             marginTop: 4,
           }}
         >
-          96.4% of impostors detected
+          {(100 - headline.eer).toFixed(1)}% of impostors detected
         </div>
       </motion.div>
     </div>
