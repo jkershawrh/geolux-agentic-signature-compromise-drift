@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from typing import Any
 
 from api.dependencies import get_repo
+from db.repository import Repository
 
 router = APIRouter()
 
@@ -27,8 +27,7 @@ class DriftSummary(BaseModel):
 
 
 @router.get("/{agent_id}/certifications", response_model=list[CertificationSummary])
-def get_certifications(agent_id: str):
-    repo = get_repo()
+def get_certifications(agent_id: str, repo: Repository = Depends(get_repo)):
     certs = repo.get_certifications_for_agent(agent_id)
     return [
         CertificationSummary(
@@ -44,8 +43,7 @@ def get_certifications(agent_id: str):
 
 
 @router.get("/{agent_id}/drift", response_model=list[DriftSummary])
-def get_drift_events(agent_id: str, limit: int = 50):
-    repo = get_repo()
+def get_drift_events(agent_id: str, limit: int = 50, repo: Repository = Depends(get_repo)):
     events = repo.get_monitoring_events(agent_id, limit=limit)
     return [
         DriftSummary(
