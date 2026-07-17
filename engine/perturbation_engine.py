@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import importlib
-from typing import Any, Optional
+from typing import Any
 
 from domain.models import AgentProfile
 

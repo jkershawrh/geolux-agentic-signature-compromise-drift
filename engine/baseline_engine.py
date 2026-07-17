@@ -5,12 +5,11 @@ from typing import Optional
 import numpy as np
 
 from adapters.interfaces import InferenceAdapter, MetricExtractor
-from domain.enums import AgentStatus, SignatureType
+from domain.enums import SignatureType
 from domain.geometry import GeometricSignature
 from domain.metrics import MetricMeasurement
 from domain.models import AgentProfile, ControlledRun
 from engine.geometric.distance import geodesic_distance
-from engine.geometric.embedding import metrics_to_vector
 from engine.signature_generator import SignatureGenerator
 
 

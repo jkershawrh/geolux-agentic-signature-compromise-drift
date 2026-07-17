@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
@@ -19,8 +19,8 @@ from engine.geometric.distance import euclidean_distance
 
 # Optional embedding support -- imported lazily to avoid hard dependency
 try:
-    from engine.embedding_signature import EmbeddingSignatureGenerator
     from domain.embedding_models import EmbeddingBaseline
+    from engine.embedding_signature import EmbeddingSignatureGenerator
 except ImportError:  # pragma: no cover
     EmbeddingSignatureGenerator = None  # type: ignore[assignment,misc]
     EmbeddingBaseline = None  # type: ignore[assignment,misc]
@@ -59,9 +59,20 @@ class LSHIndex:
         self._rng = np.random.RandomState(seed)
 
     def _init_planes(self, dim: int) -> None:
-        """Initialize random hyperplanes for the given dimensionality."""
-        if self._planes is None or self._planes.shape[1] != dim:
+        """Initialize random hyperplanes on first use; reject dimension changes.
+
+        Regenerating the planes for a new dimensionality would silently
+        invalidate every bucket assignment made with the old planes, so a
+        mismatch is an error: the caller must build a fresh index instead.
+        """
+        if self._planes is None:
             self._planes = self._rng.randn(self._n_planes, dim)
+        elif self._planes.shape[1] != dim:
+            raise ValueError(
+                f"vector dimensionality {dim} does not match the index "
+                f"dimensionality {self._planes.shape[1]}; existing bucket "
+                "assignments would be invalidated — build a new LSHIndex"
+            )
 
     def _hash_vector(self, vec: np.ndarray) -> int:
         """Compute LSH bucket ID for a vector."""
@@ -114,10 +125,13 @@ class LSHIndex:
 
 
 class CommitmentStore:
-    """Secure commitment hash store for cryptographic identity verification.
+    """Centroid store with SHA-256 commitment hashes.
 
-    Stores SHA-256 hashes of agent metric vectors. Verification computes
-    the vector, hashes it, and compares. The raw vector is never stored.
+    Stores each agent's raw centroid (needed for tolerance-based distance
+    verification) alongside a SHA-256 hash of it. The hash only supports
+    ``verify_exact`` — detecting that a presented centroid differs from the
+    enrolled one. It is NOT a cryptographic identity proof: approximate
+    verification is a plain distance check against the stored centroid.
     """
 
     def __init__(self):

@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 from adapters.metric_extractor import DefaultMetricExtractor
 from adapters.mock_adapter import RealisticMockAdapter
-from domain.attacks import AttackConfig, AttackResult, AttackType
+from domain.attacks import AttackResult, AttackType
 from domain.enums import SignatureType
 from domain.geometry import GeometricSignature
 from domain.models import AgentProfile
@@ -145,8 +145,8 @@ class AttackSimulator:
         on a clean adapter and then on a compromised adapter, comparing
         persistence scores.  A significant score drop signals mimicry.
         """
-        from engine.multi_turn_prober import MultiTurnProber
         from adapters.mock_adapter import MockConversationalAdapter
+        from engine.multi_turn_prober import MultiTurnProber
 
         attack_id = _new_id()
 
@@ -237,11 +237,8 @@ class AttackSimulator:
             # Create a sequence of adapters with incrementally different
             # parameters to simulate gradual behavioural change
             signatures: list[GeometricSignature] = []
-            prompts = self._generate_prompts(num_trials)
 
             for i in range(num_trials):
-                # Each trial uses a slightly different adapter
-                drifting_adapter = RealisticMockAdapter(profile="balanced")
                 # We simulate gradual drift by constructing signatures with
                 # incrementally shifted embedding vectors
                 shift = 0.05 * (i + 1)
@@ -359,8 +356,7 @@ class AttackSimulator:
 
         for i, prompt in enumerate(prompts):
             # Generate a spoofed signature from the minimal profile
-            spoofed_run = spoofing_adapter.execute(agent, prompt)
-            spoofed_metrics = self._extractor.extract(spoofed_run)
+            spoofing_adapter.execute(agent, prompt)
 
             # Build a simple spoofed signature by perturbing the baseline
             baseline_vec = target_baseline.embedding_vector

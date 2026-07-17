@@ -49,7 +49,7 @@ class ReducibilityAnalyzer:
 
         vectors = np.array([metrics_to_vector(m) for m in metrics_per_run])
 
-        from domain.metrics import ALL_METRIC_NAMES, METRIC_DEFINITIONS
+        from domain.metrics import METRIC_DEFINITIONS
 
         classifications = []
         col_idx = 0

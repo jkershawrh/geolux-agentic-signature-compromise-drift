@@ -25,33 +25,46 @@ def _utcnow() -> datetime:
 
 
 class SimpleEncryptor:
-    """XOR cipher with HMAC integrity — stdlib-only, no Rust compiler needed.
+    """Stream cipher (HMAC-SHA256 keystream in counter mode) with
+    encrypt-then-MAC integrity — stdlib-only, no external crypto dependency.
 
-    Suitable for demonstrating the security architecture pattern in a
-    research prototype.  NOT intended for production use.
+    A fresh random nonce per message means keystreams are never reused and
+    identical plaintexts encrypt differently. Encryption and MAC use keys
+    derived separately from the master key. Research prototype: prefer a
+    vetted AEAD (e.g. AES-GCM via `cryptography`) for production use.
     """
 
+    _NONCE_LEN = 16
+
     def __init__(self, key: bytes):
-        self._key = key
+        self._enc_key = hmac.new(key, b"asc-encrypt", hashlib.sha256).digest()
+        self._mac_key = hmac.new(key, b"asc-mac", hashlib.sha256).digest()
+
+    def _keystream(self, nonce: bytes, length: int) -> bytes:
+        blocks = []
+        for counter in range((length + 31) // 32):
+            block_input = nonce + counter.to_bytes(8, "big")
+            blocks.append(hmac.new(self._enc_key, block_input, hashlib.sha256).digest())
+        return b"".join(blocks)[:length]
 
     def encrypt(self, data: bytes) -> str:
-        """XOR with repeating key, base64 encode, append HMAC."""
-        key_stream = (self._key * (len(data) // len(self._key) + 1))[: len(data)]
-        encrypted = bytes(a ^ b for a, b in zip(data, key_stream))
-        mac = hmac.new(self._key, encrypted, hashlib.sha256).hexdigest()
-        return base64.b64encode(encrypted).decode() + ":" + mac
+        """XOR with a per-message keystream, base64 encode, append HMAC."""
+        nonce = os.urandom(self._NONCE_LEN)
+        encrypted = bytes(a ^ b for a, b in zip(data, self._keystream(nonce, len(data))))
+        payload = nonce + encrypted
+        mac = hmac.new(self._mac_key, payload, hashlib.sha256).hexdigest()
+        return base64.b64encode(payload).decode() + ":" + mac
 
     def decrypt(self, token: str) -> bytes:
-        """Verify HMAC, then XOR decrypt."""
+        """Verify HMAC (encrypt-then-MAC), then decrypt."""
         encoded, mac = token.rsplit(":", 1)
-        encrypted = base64.b64decode(encoded)
-        expected_mac = hmac.new(self._key, encrypted, hashlib.sha256).hexdigest()
+        payload = base64.b64decode(encoded)
+        expected_mac = hmac.new(self._mac_key, payload, hashlib.sha256).hexdigest()
         if not hmac.compare_digest(mac, expected_mac):
             raise ValueError("Integrity check failed — signature may be tampered")
-        key_stream = (self._key * (len(encrypted) // len(self._key) + 1))[
-            : len(encrypted)
-        ]
-        return bytes(a ^ b for a, b in zip(encrypted, key_stream))
+        nonce = payload[: self._NONCE_LEN]
+        encrypted = payload[self._NONCE_LEN:]
+        return bytes(a ^ b for a, b in zip(encrypted, self._keystream(nonce, len(encrypted))))
 
 
 class SecureMeasurement:

@@ -6,14 +6,11 @@ batch accuracy with the same shared-PCA path as the product engine.
 
 from __future__ import annotations
 
-from typing import Union
-
 import numpy as np
 from sklearn.metrics import roc_auc_score
 
 from engine.embedding_signature import EmbeddingSignatureGenerator
 from engine.geometric.distance import euclidean_distance
-
 
 # Pre-registered mock regression bounds (committed; not fitted to MaaS data).
 # Guards the evaluation pipeline against math/regression bugs; MaaS numbers

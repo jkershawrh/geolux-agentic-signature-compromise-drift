@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Optional
 
 import numpy as np
-from scipy.spatial.distance import cosine as cosine_distance
 
 
 def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
@@ -49,35 +48,19 @@ def frechet_mean(vectors: list[np.ndarray],
                  tolerance: float = 1e-8) -> np.ndarray:
     """Compute the Fréchet mean (geometric center of mass).
 
-    For Euclidean metric, this is simply the arithmetic mean.
-    For a Riemannian metric tensor, uses iterative weighted averaging
-    (gradient descent on the sum of squared geodesic distances).
+    For a *constant* metric tensor G (our Mahalanobis approximation), the
+    minimizer of sum_i (v_i - m)^T G (v_i - m) is exactly the arithmetic
+    mean: the gradient G @ sum_i (v_i - m) vanishes iff sum_i (v_i - m) = 0,
+    since G is invertible. So no iteration is needed — a true iterative
+    Fréchet mean only arises for a position-dependent metric (exp/log maps),
+    which this codebase does not implement. See METHODOLOGY.md.
 
-    Note: With a metric tensor, this uses gradient descent on a quadratic
-    form, not exp/log maps on a Riemannian manifold. Converges to the
-    arithmetic mean for constant metric. See METHODOLOGY.md.
+    ``metric_tensor``, ``max_iterations`` and ``tolerance`` are kept for
+    API compatibility; the result is the arithmetic mean either way.
     """
     if not vectors:
         raise ValueError("Cannot compute Fréchet mean of empty list")
-
-    if metric_tensor is None:
-        return np.mean(vectors, axis=0)
-
-    # Iterative Fréchet mean for Riemannian metric
-    mean = np.mean(vectors, axis=0)
-    for _ in range(max_iterations):
-        gradient = np.zeros_like(mean)
-        for v in vectors:
-            diff = v - mean
-            gradient += metric_tensor @ diff
-        gradient /= len(vectors)
-
-        new_mean = mean + gradient
-        if np.linalg.norm(new_mean - mean) < tolerance:
-            break
-        mean = new_mean
-
-    return mean
+    return np.mean(vectors, axis=0)
 
 
 def per_dimension_distances(a: np.ndarray, b: np.ndarray,

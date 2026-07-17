@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -11,6 +11,9 @@ from pydantic import BaseModel, Field, field_validator
 class MonitoringPolicy(str, Enum):
     ALERT_ONLY = "alert_only"
     GRADUATED = "graduated"
+    # Challenge-first: drift triggers a secret-beacon step-up verification;
+    # strikes are applied only when the step-up FAILS (see EnforcementEngine).
+    GRADUATED_STEP_UP = "graduated_step_up"
     KILL_SWITCH = "kill_switch"
 
 
@@ -24,6 +27,7 @@ class MonitoringFrequency(str, Enum):
 class EnforcementAction(str, Enum):
     NONE = "none"
     WARNING = "warning"
+    STEP_UP = "step_up"  # demand secret-beacon re-verification before escalating
     THROTTLE = "throttle"
     SUSPEND = "suspend"
 

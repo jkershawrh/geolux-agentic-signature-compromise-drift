@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import uuid
-from typing import Optional
 
 import numpy as np
 
 from domain.enums import DriftCategory, MetricDimension
 from domain.geometry import DriftMeasurement, GeometricSignature
-from domain.metrics import METRIC_DEFINITIONS
 from engine.geometric.distance import (
     cosine_similarity,
     drift_direction,
@@ -16,7 +14,6 @@ from engine.geometric.distance import (
     per_dimension_distances,
 )
 from engine.signature_generator import get_dimension_sizes
-
 
 # Mapping from metric dimension to drift category
 DIMENSION_TO_DRIFT: dict[MetricDimension, DriftCategory] = {

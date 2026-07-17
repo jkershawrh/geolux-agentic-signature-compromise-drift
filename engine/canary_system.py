@@ -12,10 +12,14 @@ from domain.models import AgentProfile
 class CanarySystem:
     """Challenge-response canary system.
 
-    Embeds hidden verification signals in prompts and checks whether the
-    agent's response honours them.  A legitimate, uncompromised agent
-    configuration is expected to follow these embedded instructions; a
-    swapped or hijacked model likely will not.
+    Embeds verification instructions in prompts and checks whether the
+    agent's response honours them.
+
+    Scope: the canary instructions are visible in the prompt, so any
+    competent model — including a substituted one — can satisfy them.
+    Canaries detect *broken or misconfigured* agents (lost system prompt,
+    degraded instruction-following), not deliberate impostors. Identity
+    against substitution is the embedding-signature path's job.
     """
 
     # Weights per canary type for authenticity scoring
@@ -151,7 +155,6 @@ class CanarySystem:
 
     def _check_content(self, canary: CanaryProbe, response: str) -> bool:
         """Case-insensitive substring search for required content."""
-        instruction = canary.instruction.lower()
         resp_lower = response.lower()
 
         # Look for quoted words/phrases in the instruction
