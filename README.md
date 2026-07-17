@@ -108,15 +108,39 @@ Chain-of-thought `<think>` blocks are automatically stripped before metric extra
 
 ## API
 
+The bundled API wires the pipeline to a **mock inference adapter** — enrollment,
+certification, and monitoring run against simulated responses. Swap in a real
+adapter (e.g. `LiteLLMAdapter`) in `api/dependencies.py` for live inference.
+Set `ASC_API_KEY` to require an `X-API-Key` header on every endpoint except
+`/health`; without it the API is open (research default — keep it on localhost).
+
 ```bash
 uvicorn api.app:app
 # POST /agents/enroll          — register agent
 # POST /agents/{id}/certify    — run certification battery
-# POST /monitor/{id}/check     — inline drift check
+# GET  /agents/{id}/profile    — behavioral profile (per-dimension stats,
+#                                most stable/variable metrics, consistency)
+# POST /monitor/{id}/check     — inline drift check; returns per-dimension
+#                                drift decomposition + top shifted dimensions
+#                                and verifies the baseline's sealed envelope
 # GET  /monitor/{id}/status    — current status + strike count
 # GET  /reports/{id}/certifications
 # GET  /reports/{id}/drift
 ```
+
+## Security Layers
+
+| Layer | Module | What it proves |
+|---|---|---|
+| API-key auth | `api/app.py` (`ASC_API_KEY`) | Only authorized callers reach the monitor |
+| Sealed baselines | `engine/identity_pipeline.py` + `asc_signature_envelopes` | Stored baselines haven't been tampered with (encrypted copy + commitment hash, checked on every monitor call) |
+| Response provenance | `engine/provenance.py` (`ASC_PROVENANCE_KEY`) | Recorded transcripts are complete, ordered, unmodified (HMAC hash chain per agent) |
+| Secret beacons + step-up | `engine/secret_beacon.py` | The agent still holds its enrolled configuration (covert challenge-response) |
+| Behavioral drift | `engine/monitor.py` | Continuous screening; triggers step-up rather than punishing on statistics alone |
+
+These layers authenticate configuration and observation integrity. Proving
+*which model weights* are running requires infrastructure attestation
+(SPIFFE/SPIRE, confidential computing) — planned integration, out of scope here.
 
 ## Identity Pipeline
 
@@ -126,12 +150,33 @@ ENROLL → CERTIFY → ASSIGN → MONITOR → RESPOND → RE-CERTIFY
 
 Certification battery: self-consistency, discriminability (Fisher), canary compliance, multi-turn coherence, attack detection. Dual-path verification: fast LSH lookup + secure commitment hash. Graduated enforcement: warning → throttle → suspend (3-strike).
 
+## Step-Up Verification (prototype)
+
+Behavioral signatures are observable, so a deliberate impostor can mimic them —
+the drift monitor alone is a smoke detector, not a boundary. The
+`GRADUATED_STEP_UP` policy closes part of that gap with **secret beacons**:
+covert trigger→marker rules embedded in the legitimate agent's system prompt at
+enrollment (`engine/secret_beacon.py`). A drift alarm triggers a challenge
+battery instead of a strike; the challenge never reveals the expected response,
+so an agent without the enrolled configuration fails even after observing every
+past challenge. Passed step-up = drift logged, no strike (false positives are
+absorbed); failed step-up = strike ladder to suspension. Beacons are
+single-use — re-provision the pool periodically.
+
+```bash
+python scripts/step_up_demo.py   # legitimate agent passes, impostor is suspended
+```
+
+This authenticates the agent *configuration*, not the model weights or the
+workload — combine with infrastructure attestation (SPIFFE/SPIRE) for the full
+boundary.
+
 ## Pre-Commit Hooks
 
 Every commit automatically runs:
 - Trailing whitespace, YAML validation, private key detection
-- Ruff lint (E, F, I rules)
-- 382 pytest tests (including regression guards)
+- Ruff lint (E/F/I rules from pyproject.toml; long-line rule excluded)
+- 385 pytest tests (including regression guards and API tests)
 - 30 BDD scenarios
 
 Commit is blocked if any hook fails.

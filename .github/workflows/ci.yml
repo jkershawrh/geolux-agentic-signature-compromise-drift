@@ -39,5 +39,4 @@ jobs:
             --cov-report=xml --cov-report=term -q
 
       - name: Lint
-        run: python -m ruff check . --select E,F,I
-        continue-on-error: true
+        run: python -m ruff check .

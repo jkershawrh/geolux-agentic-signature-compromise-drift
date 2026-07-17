@@ -36,6 +36,8 @@ dev = [
     "pytest-cov>=4.0",
     "hypothesis>=6.82",
     "behave>=1.2",
+    "httpx>=0.24",
+    "ruff>=0.5",
 ]
 
 [tool.pytest.ini_options]
@@ -52,4 +54,8 @@ target-version = "py39"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+select = ["E", "F", "I"]
+# E501: ~130 pre-existing long lines (mostly research scripts and test data);
+# rewrapping them is churn without functional gain. New code should still aim
+# for the 100-char limit.
+ignore = ["E501"]
