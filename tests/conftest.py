@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -12,16 +12,11 @@ from adapters.mock_adapter import MockInferenceAdapter
 from db.models import Base
 from db.repository import Repository
 from domain.enums import (
-    AgentStatus,
     DriftCategory,
-    MetricDimension,
-    Reducibility,
     SignatureType,
 )
 from domain.geometry import DriftMeasurement, GeometricSignature
-from domain.metrics import MetricMeasurement
 from domain.models import AgentProfile, ControlledRun
-from domain.reducibility import ReducibilityClassification
 
 
 @pytest.fixture

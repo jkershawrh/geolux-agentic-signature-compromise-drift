@@ -5,7 +5,6 @@ import json
 import pytest
 
 from adapters.mock_adapter import MockInferenceAdapter
-from domain.models import AgentProfile
 from domain.semantics import SemanticDriftReport, SemanticSimilarityResult
 from engine.semantic_analyzer import SemanticAnalyzer
 

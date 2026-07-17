@@ -1,12 +1,10 @@
 """Contract tests verifying secure measurement components satisfy expected interfaces."""
 from __future__ import annotations
 
-import pytest
-
 from adapters.metric_extractor import DefaultMetricExtractor
 from adapters.mock_adapter import MockInferenceAdapter
 from domain.enums import DriftCategory, SignatureType
-from domain.geometry import DriftMeasurement, GeometricSignature
+from domain.geometry import DriftMeasurement
 from domain.models import AgentProfile
 from domain.security import ObfuscatedDriftResult, SecureSignatureEnvelope
 from engine.drift_detector import DriftDetector

@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 
 from adapters.metric_extractor import DefaultMetricExtractor

@@ -1,10 +1,11 @@
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import numpy as np
-import pytest
-from engine.verification import DualPathVerifier, LSHIndex, CommitmentStore
+
+from engine.verification import CommitmentStore, DualPathVerifier, LSHIndex
 
 
 class TestLSHIndex:

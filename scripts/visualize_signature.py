@@ -18,13 +18,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
 from adapters.metric_extractor import DefaultMetricExtractor
 from adapters.mock_adapter import RealisticMockAdapter
-from domain.enums import MetricDimension, SignatureType
+from domain.enums import MetricDimension
 from domain.metrics import ALL_METRIC_NAMES, METRIC_DEFINITIONS
 from domain.models import AgentProfile
 from engine.baseline_engine import BaselineEngine

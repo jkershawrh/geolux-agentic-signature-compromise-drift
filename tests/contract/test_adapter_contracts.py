@@ -1,5 +1,4 @@
 """Contract tests verifying that adapters satisfy their Protocol interfaces."""
-import pytest
 
 from adapters.metric_extractor import DefaultMetricExtractor
 from adapters.mock_adapter import MockInferenceAdapter

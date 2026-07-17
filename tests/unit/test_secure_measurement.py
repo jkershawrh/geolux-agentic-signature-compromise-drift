@@ -6,9 +6,9 @@ import pytest
 from adapters.metric_extractor import DefaultMetricExtractor
 from adapters.mock_adapter import MockInferenceAdapter
 from domain.enums import DriftCategory, SignatureType
-from domain.geometry import DriftMeasurement, GeometricSignature
+from domain.geometry import DriftMeasurement
 from domain.models import AgentProfile
-from domain.security import ObfuscatedDriftResult, SecureSignatureEnvelope
+from domain.security import ObfuscatedDriftResult
 from engine.drift_detector import DriftDetector
 from engine.secure_measurement import SecureMeasurement
 from engine.signature_generator import SignatureGenerator

@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,7 +25,6 @@ from adapters.metric_extractor import DefaultMetricExtractor
 from domain.models import AgentProfile
 from engine.geometric.distance import euclidean_distance
 from engine.geometric.embedding import metrics_to_vector
-
 
 # ---------------------------------------------------------------------------
 # Prompt corpus — 30 diverse prompts
@@ -330,7 +330,7 @@ def run_study(use_maas: bool = False) -> None:
     all_sorted_indices = sorted(range(len(ALL_METRIC_NAMES)),
                                 key=lambda i: fisher_ratios[ALL_METRIC_NAMES[i]], reverse=True)
 
-    print(f"\n  Fisher Metric Selection Sweep:")
+    print("\n  Fisher Metric Selection Sweep:")
     print(f"  {'Top-K':>8s} {'Ratio':>8s} {'Within':>8s} {'Inter':>8s} {'Status':>8s}")
     print(f"  {'─'*8} {'─'*8} {'─'*8} {'─'*8} {'─'*8}")
 
@@ -391,14 +391,14 @@ def run_study(use_maas: bool = False) -> None:
 
     final_pass = ratio_filtered >= 3.0 and d > 0.8 and p_value < 0.05
     if final_pass:
-        print(f"\n  PASS — Agents are reliably distinguishable")
+        print("\n  PASS — Agents are reliably distinguishable")
         print(f"  with Fisher-selected top-{best_k} metrics")
     elif ratio_filtered >= 2.5:
-        print(f"\n  MARGINAL — Close to target with metric selection")
-        print(f"  Consider more differentiated agent configurations")
+        print("\n  MARGINAL — Close to target with metric selection")
+        print("  Consider more differentiated agent configurations")
     else:
-        print(f"\n  FAIL — Agents not sufficiently distinguishable")
-        print(f"  Need different agent behaviors or additional metrics")
+        print("\n  FAIL — Agents not sufficiently distinguishable")
+        print("  Need different agent behaviors or additional metrics")
 
 
 if __name__ == "__main__":

@@ -18,14 +18,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import matplotlib
+
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
 
 from adapters.metric_extractor import DefaultMetricExtractor
 from adapters.mock_adapter import RealisticMockAdapter
-from domain.enums import MetricDimension, SignatureType
+from domain.enums import MetricDimension
 from domain.geometry import DriftMeasurement
 from domain.models import AgentProfile
 from engine.baseline_engine import BaselineEngine
@@ -174,9 +175,9 @@ def plot_comparison(all_drifts: dict[str, DriftMeasurement]) -> str:
         drift = all_drifts[scenario]
         values = [drift.per_dimension_drift.get(d, 0.0) for d in dims]
         offset = (i - n_scenarios / 2 + 0.5) * width
-        bars = ax.bar(x + offset, values, width, label=label,
-                      color=colors[i % len(colors)], edgecolor="white",
-                      linewidth=0.5, alpha=0.85)
+        ax.bar(x + offset, values, width, label=label,
+               color=colors[i % len(colors)], edgecolor="white",
+               linewidth=0.5, alpha=0.85)
 
     ax.set_xticks(x)
     ax.set_xticklabels(dim_labels, fontsize=9, rotation=25, ha="right")
@@ -245,7 +246,7 @@ def plot_gauge(drift: DriftMeasurement, scenario: str, label: str) -> str:
     # Labels
     ax.text(0, -0.15, f"{magnitude:.3f}", fontsize=22, fontweight="bold",
             ha="center", va="center", color=fill_color)
-    ax.text(0, -0.35, f"Drift Magnitude", fontsize=10, ha="center", va="center",
+    ax.text(0, -0.35, "Drift Magnitude", fontsize=10, ha="center", va="center",
             color="#666")
     ax.text(0, 1.15, label, fontsize=12, fontweight="bold", ha="center", va="center")
 

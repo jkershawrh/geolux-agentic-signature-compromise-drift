@@ -1,15 +1,9 @@
 from __future__ import annotations
 
-import math
-
-import numpy as np
-import pytest
-
 from domain.enums import SignatureType
 from domain.geometry import GeometricSignature
-from domain.temporal import DriftPattern, TemporalDriftReport, TemporalWindow
+from domain.temporal import DriftPattern, TemporalDriftReport
 from engine.temporal_tracker import TemporalTracker
-
 
 # ---------------------------------------------------------------------------
 # Helpers

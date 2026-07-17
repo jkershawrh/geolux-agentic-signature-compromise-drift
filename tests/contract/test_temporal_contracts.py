@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from domain.enums import SignatureType
 from domain.geometry import GeometricSignature
 from domain.temporal import DriftPattern, TemporalDriftReport, TemporalWindow

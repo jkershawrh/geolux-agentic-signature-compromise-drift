@@ -8,7 +8,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from adapters.metric_extractor import DefaultMetricExtractor
-from adapters.mock_adapter import MockConversationalAdapter, RealisticMockAdapter
+from adapters.mock_adapter import RealisticMockAdapter
 from domain.attacks import AttackResult, AttackType
 from domain.enums import SignatureType
 from domain.geometry import GeometricSignature

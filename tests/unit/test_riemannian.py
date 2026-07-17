@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from engine.geometric.riemannian import (
+    anisotropy_estimate,
     compute_metric_tensor,
     compute_metric_tensor_shrinkage,
     local_metric_tensor,
-    anisotropy_estimate,
 )
 
 

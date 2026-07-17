@@ -1,4 +1,3 @@
-import pytest
 
 from domain.enums import DriftCategory
 from domain.geometry import DriftMeasurement

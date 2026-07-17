@@ -7,8 +7,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from adapters.mock_adapter import MockInferenceAdapter
 from adapters.metric_extractor import DefaultMetricExtractor
+from adapters.mock_adapter import MockInferenceAdapter
 from domain.canaries import CanaryProbe, CanaryReport, CanaryResult, CanaryType
 from domain.models import AgentProfile
 from engine.canary_system import CanarySystem

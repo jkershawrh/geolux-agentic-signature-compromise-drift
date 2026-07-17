@@ -12,7 +12,12 @@ from domain.enums import (
 )
 from domain.geometry import DriftMeasurement, GeometricSignature
 from domain.lifecycle import is_valid_agent_transition, is_valid_run_transition
-from domain.metrics import ALL_METRIC_NAMES, METRIC_DEFINITIONS, MetricMeasurement, get_exclusion_mask
+from domain.metrics import (
+    ALL_METRIC_NAMES,
+    METRIC_DEFINITIONS,
+    MetricMeasurement,
+    get_exclusion_mask,
+)
 from domain.models import AgentProfile, ControlledRun
 from domain.reducibility import ReducibilityClassification
 

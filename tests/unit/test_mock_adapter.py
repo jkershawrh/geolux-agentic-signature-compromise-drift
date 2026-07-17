@@ -1,8 +1,6 @@
-import pytest
 
 from adapters.mock_adapter import MockInferenceAdapter
 from domain.enums import RunStatus
-from domain.models import AgentProfile
 
 
 class TestMockInferenceAdapter:

@@ -1,13 +1,11 @@
 import numpy as np
-import pytest
-from hypothesis import given, settings, assume
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from engine.geometric.embedding import (
     aggregate_metric_vectors,
     normalize_vector,
 )
-
 
 float_vector = st.lists(
     st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),

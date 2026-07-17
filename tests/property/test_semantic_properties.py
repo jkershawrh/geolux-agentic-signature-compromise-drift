@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from hypothesis import given as hgiven, settings
+from hypothesis import given as hgiven
+from hypothesis import settings
 from hypothesis import strategies as st
 
 from adapters.mock_adapter import MockInferenceAdapter
