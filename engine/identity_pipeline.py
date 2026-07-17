@@ -45,6 +45,7 @@ class IdentityPipeline:
         attack_threshold: float = 0.7,
         secure: Optional[SecureMeasurement] = None,
         beacon_auth: Optional[SecretBeaconAuthenticator] = None,
+        discriminative_masks: Optional[dict[str, list[bool]]] = None,
     ):
         self._adapter = adapter
         self._extractor = extractor
@@ -59,7 +60,9 @@ class IdentityPipeline:
         self._enforcement = EnforcementEngine()
         self._secure = secure or SecureMeasurement()
         self._beacons = beacon_auth or SecretBeaconAuthenticator()
-        self._discriminative_masks: dict[str, list[bool]] = {}
+        self._discriminative_masks: dict[str, list[bool]] = (
+            discriminative_masks if discriminative_masks is not None else {}
+        )
 
     # ------------------------------------------------------------------
     # Lifecycle stages
@@ -120,27 +123,48 @@ class IdentityPipeline:
         return baseline_signature
 
     def verify_baseline_integrity(
-        self, baseline: GeometricSignature
+        self,
+        baseline: GeometricSignature,
+        agent_status: Optional[AgentStatus] = None,
     ) -> tuple[bool, str]:
         """Check a stored baseline against its sealed envelope.
 
-        Returns ``(ok, reason)``. Baselines with no recorded envelope
-        (legacy, or saved outside assign()) pass with a note — sealing is
-        opt-in evidence, not a gate on old data. Requires the same
-        ASC_ENCRYPTION_KEY that sealed the envelope.
+        Returns ``(ok, reason)``.  ACTIVE agents (which went through
+        ``assign()``) are expected to have an envelope — a missing envelope
+        for an ACTIVE agent is treated as a tamper (the row was deleted).
+        Legacy/non-ACTIVE agents without an envelope pass with a note.
+
+        When the encryption key is ephemeral (not persisted across
+        restarts), decryption failures are downgraded to a warning rather
+        than blocking monitoring entirely.
         """
         if not self._repo:
             return True, "no repository attached"
         envelope = self._repo.get_envelope_for_signature(baseline.signature_id)
         if envelope is None:
+            if agent_status == AgentStatus.ACTIVE:
+                return False, "ACTIVE agent has no sealed envelope (deleted?)"
             return True, "no envelope recorded for this baseline"
         try:
             sealed_vector = self._secure.decrypt_signature(envelope)
         except ValueError as exc:
+            if self._secure.ephemeral_key:
+                return True, (
+                    "envelope undecryptable with ephemeral key (set "
+                    "ASC_ENCRYPTION_KEY for cross-restart verification)"
+                )
             return False, f"envelope verification failed: {exc}"
-        if list(sealed_vector) != list(baseline.embedding_vector):
+        baseline_hash = SecureMeasurement.compute_commitment_hash(
+            baseline.embedding_vector
+        )
+        sealed_hash = SecureMeasurement.compute_commitment_hash(sealed_vector)
+        if baseline_hash != sealed_hash:
             return False, "stored baseline differs from sealed envelope (tampered)"
         return True, "verified against sealed envelope"
+
+    def extract_metrics(self, run: ControlledRun):
+        """Extract metrics from a run (for reuse across monitor + breakdown)."""
+        return self._extractor.extract(run)
 
     def monitor(
         self,
@@ -182,14 +206,17 @@ class IdentityPipeline:
         self,
         run: ControlledRun,
         baseline_signature: GeometricSignature,
+        pre_extracted_metrics: list | None = None,
     ) -> dict[str, float]:
         """Per-dimension drift decomposition for a single run vs. baseline.
 
         Answers "WHICH behavioral dimensions shifted", not just how much.
+        Pass *pre_extracted_metrics* to avoid re-extracting metrics that
+        have already been computed (e.g. by a prior ``monitor()`` call).
         """
         from engine.signature_generator import get_dimension_sizes
 
-        metrics = self._extractor.extract(run)
+        metrics = pre_extracted_metrics or self._extractor.extract(run)
         vec = metrics_to_vector(metrics)
         baseline_vec = np.array(baseline_signature.embedding_vector)
         return per_dimension_distances(vec, baseline_vec, get_dimension_sizes())

@@ -21,6 +21,7 @@ from engine.signature_generator import SignatureGenerator
 # endpoints from a threadpool.
 _session_factory = None
 _components: tuple | None = None
+_discriminative_masks: dict[str, list[bool]] = {}
 
 
 def _get_session_factory():
@@ -70,4 +71,5 @@ def get_pipeline(repo: Repository = Depends(get_repo)) -> IdentityPipeline:
         repository=repo,
         canary_threshold=0.1,
         secure=secure,
+        discriminative_masks=_discriminative_masks,
     )

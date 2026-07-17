@@ -87,6 +87,23 @@ class Repository:
             row.updated_at = datetime.now(timezone.utc)
             self._session.commit()
 
+    def increment_strike_count(self, agent_id: str, delta: int = 1) -> int:
+        """Atomically increment strike_count and return the new value."""
+        from sqlalchemy import update
+
+        stmt = (
+            update(AgentRow)
+            .where(AgentRow.agent_id == agent_id)
+            .values(
+                strike_count=AgentRow.strike_count + delta,
+                updated_at=datetime.now(timezone.utc),
+            )
+        )
+        self._session.execute(stmt)
+        self._session.commit()
+        row = self._session.query(AgentRow).filter_by(agent_id=agent_id).first()
+        return row.strike_count if row else 0
+
     def list_agents(self) -> list[AgentProfile]:
         rows = self._session.query(AgentRow).all()
         return [

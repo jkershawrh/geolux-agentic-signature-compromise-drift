@@ -20,6 +20,7 @@ class CheckRequest(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
     latency_ms: int = 0
+    policy: MonitoringPolicy = MonitoringPolicy.GRADUATED
 
 
 class CheckResponse(BaseModel):
@@ -50,13 +51,18 @@ def check_drift(
     if not agent:
         raise HTTPException(404, f"Agent {agent_id} not found")
 
+    if agent.status == AgentStatus.COMPROMISED:
+        raise HTTPException(403, f"Agent {agent_id} is suspended (COMPROMISED)")
+
     baseline = repo.get_baseline_signature(agent_id)
     if not baseline:
         raise HTTPException(400, f"Agent {agent_id} has no baseline signature")
 
     # Refuse to monitor against a baseline that fails its sealed-envelope
     # check — a tampered baseline would let drift go undetected.
-    integrity_ok, integrity_reason = pipeline.verify_baseline_integrity(baseline)
+    integrity_ok, integrity_reason = pipeline.verify_baseline_integrity(
+        baseline, agent_status=agent.status
+    )
     if not integrity_ok:
         raise HTTPException(409, f"baseline integrity check failed: {integrity_reason}")
 
@@ -73,22 +79,24 @@ def check_drift(
         status=RunStatus.COMPLETED,
     )
 
+    # Extract metrics once, reuse for both monitoring and breakdown
+    metrics = pipeline.extract_metrics(run)
     event = pipeline.monitor(agent, run, baseline)
 
-    # Interpretability: which behavioral dimensions moved, not just how much
-    breakdown = pipeline.drift_breakdown(run, baseline)
+    breakdown = pipeline.drift_breakdown(run, baseline, pre_extracted_metrics=metrics)
     top_shifted = sorted(breakdown, key=breakdown.get, reverse=True)[:3]
 
     # Run enforcement against the persisted strike count so the graduated
     # (3-strike) policy actually escalates across requests.
     strike_count = repo.get_strike_count(agent_id)
-    alert = pipeline.respond(agent, event, MonitoringPolicy.GRADUATED, strike_count)
+    alert = pipeline.respond(agent, event, request.policy, strike_count)
     action = event.action_taken.value
     if alert is not None:
         action = alert.action_taken.value
-        if alert.strike_count != strike_count:
-            repo.set_strike_count(agent_id, alert.strike_count)
-        strike_count = alert.strike_count
+        new_strikes = alert.strike_count
+        if new_strikes != strike_count:
+            repo.increment_strike_count(agent_id, new_strikes - strike_count)
+        strike_count = new_strikes
         if alert.action_taken == EnforcementAction.SUSPEND:
             repo.update_agent_status(agent_id, AgentStatus.COMPROMISED)
 

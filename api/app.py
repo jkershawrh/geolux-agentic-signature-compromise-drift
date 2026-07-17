@@ -15,7 +15,7 @@ def require_api_key(request: Request) -> None:
     default); set it for any deployment that leaves localhost.
     """
     expected = os.environ.get("ASC_API_KEY")
-    if not expected:
+    if expected is None:
         return
     provided = request.headers.get("X-API-Key", "")
     if not hmac.compare_digest(provided.encode(), expected.encode()):

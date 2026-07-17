@@ -6,6 +6,7 @@ import hmac
 import json
 import os
 import warnings
+from collections import deque
 from datetime import datetime, timezone
 from typing import Any
 
@@ -76,8 +77,11 @@ class SecureMeasurement:
     before exposing them externally.
     """
 
+    _AUDIT_LOG_MAX = 10_000
+
     def __init__(self, encryption_key: str | None = None):
         raw_key = encryption_key or os.environ.get("ASC_ENCRYPTION_KEY")
+        self._ephemeral_key = raw_key is None
         if raw_key is None:
             raw_key = base64.b64encode(os.urandom(32)).decode()
             warnings.warn(
@@ -89,7 +93,11 @@ class SecureMeasurement:
             "sha256", raw_key.encode(), b"asc-salt", iterations=100_000
         )
         self._encryptor = SimpleEncryptor(key_bytes)
-        self._audit_log: list[MeasurementAuditRecord] = []
+        self._audit_log: deque[MeasurementAuditRecord] = deque(maxlen=self._AUDIT_LOG_MAX)
+
+    @property
+    def ephemeral_key(self) -> bool:
+        return self._ephemeral_key
 
     # ------------------------------------------------------------------
     # Encryption
