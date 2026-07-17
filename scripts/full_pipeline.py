@@ -31,12 +31,9 @@ from engine.authentication import AuthenticationEngine
 from engine.baseline_engine import BaselineEngine
 from engine.compromise_detector import CompromiseDetector
 from engine.drift_detector import DriftDetector
-from engine.geometric.distance import geodesic_distance, cosine_similarity
-from engine.recovery_engine import RecoveryEngine
+from engine.geometric.distance import cosine_similarity, geodesic_distance
 from engine.reducibility_analyzer import ReducibilityAnalyzer
-from engine.run_orchestrator import RunOrchestrator
 from engine.signature_generator import SignatureGenerator
-
 
 PROMPTS = [
     "What is the capital of France?",
@@ -85,7 +82,7 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
     # --- Persistence setup ---
     repo: Optional["db.repository.Repository"] = None  # noqa: F821
     if use_persist:
-        from db.database import create_db_engine, init_db, get_session_factory
+        from db.database import create_db_engine, get_session_factory, init_db
         from db.repository import Repository
 
         db_path = str(Path(__file__).parent.parent / "data" / "asc.db")
@@ -145,9 +142,9 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
 
         print(f"  Base model: {base_model}")
         print(f"  Swap model: {swap_model}")
-        print(f"  Agent Alpha: concise assistant (same model)")
-        print(f"  Agent Beta:  technical expert  (same model, different behavior)")
-        print(f"  Agent Gamma: concise assistant  (different model, same behavior)")
+        print("  Agent Alpha: concise assistant (same model)")
+        print("  Agent Beta:  technical expert  (same model, different behavior)")
+        print("  Agent Gamma: concise assistant  (different model, same behavior)")
     elif use_live:
         try:
             from adapters.claude_adapter import ClaudeInferenceAdapter
@@ -171,7 +168,6 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
             model_id="claude-haiku-4-5-20251001",
             system_prompt="You are a technical coding assistant. Use code examples.",
         )
-        adapter_perturb = None
     else:
         agent_alpha = AgentProfile(
             agent_id="alpha",
@@ -187,7 +183,6 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
         )
         adapter_alpha = RealisticMockAdapter(profile="balanced")
         adapter_beta = RealisticMockAdapter(profile="coder")
-        adapter_perturb = None
 
     sub("Establishing Alpha baseline (15 runs)")
     baseline_alpha = BaselineEngine(
@@ -219,7 +214,7 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
               f"converged={baseline_gamma.is_converged}, runs={baseline_gamma.num_runs}")
 
     if baseline_alpha.convergence_distances:
-        print(f"\n  Alpha convergence trajectory:")
+        print("\n  Alpha convergence trajectory:")
         for i, d in enumerate(baseline_alpha.convergence_distances):
             print(f"    step {i+1}: {d:.6f} {bar(min(d, 1.0), 20)}")
 
@@ -264,7 +259,7 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
     # Alpha vs Beta: same model, different agent behavior
     ab_dist = geodesic_distance(vec_a, vec_b)
     ab_cos = cosine_similarity(vec_a, vec_b)
-    print(f"  Alpha vs Beta  (same model, diff behavior):")
+    print("  Alpha vs Beta  (same model, diff behavior):")
     print(f"    geodesic={ab_dist:.6f}  cosine={ab_cos:.6f}  "
           f"{'DISTINCT' if ab_dist > 0.01 else 'TOO SIMILAR'}")
 
@@ -273,22 +268,22 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
         # Alpha vs Gamma: same prompt, different model
         ag_dist = geodesic_distance(vec_a, vec_g)
         ag_cos = cosine_similarity(vec_a, vec_g)
-        print(f"  Alpha vs Gamma (same prompt, diff model):")
+        print("  Alpha vs Gamma (same prompt, diff model):")
         print(f"    geodesic={ag_dist:.6f}  cosine={ag_cos:.6f}  "
               f"{'DISTINCT' if ag_dist > 0.01 else 'TOO SIMILAR'}")
         # Beta vs Gamma: different prompt AND different model
         bg_dist = geodesic_distance(vec_b, vec_g)
         bg_cos = cosine_similarity(vec_b, vec_g)
-        print(f"  Beta  vs Gamma (diff prompt, diff model):")
+        print("  Beta  vs Gamma (diff prompt, diff model):")
         print(f"    geodesic={bg_dist:.6f}  cosine={bg_cos:.6f}")
 
-        print(f"\n  KEY FINDING:")
+        print("\n  KEY FINDING:")
         if ab_dist > 0.01:
-            print(f"    ✓ Same model + different agent config → distinct signatures")
-            print(f"      (proves agent identity, not just model identity)")
+            print("    ✓ Same model + different agent config → distinct signatures")
+            print("      (proves agent identity, not just model identity)")
         if ag_dist > 0.01:
-            print(f"    ✓ Same prompt + different model → distinct signatures")
-            print(f"      (proves model swap is detectable)")
+            print("    ✓ Same prompt + different model → distinct signatures")
+            print("      (proves model swap is detectable)")
         if ab_dist > 0.01 and ag_dist > 0.01:
             ratio = ab_dist / ag_dist if ag_dist > 0 else float('inf')
             print(f"    Agent behavior distance / model swap distance = {ratio:.2f}")
@@ -312,7 +307,7 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
     print(f"  Exclusion mask:         {sum(exclusion_mask)}/{len(exclusion_mask)} metrics retained")
     print(f"  Combined mask:          {sum(combined_mask)}/{len(combined_mask)} metrics retained")
 
-    print(f"\n  Per-metric classification:")
+    print("\n  Per-metric classification:")
     for c in sorted(classifications, key=lambda x: x.predictability_score, reverse=True):
         icon = {"reducible": "●", "conditionally_reducible": "◐", "irreducible": "○"}
         print(f"    {icon[c.reducibility.value]} {c.metric_name:35s} "
@@ -453,16 +448,6 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
             )
             scenario_prompts = [f"{noise}{p}" for p in PROMPTS[:10]]
 
-        inner_orchestrator = RunOrchestrator(
-            adapter=perturbed_adapter, extractor=extractor, generator=generator,
-        )
-
-        if repo is not None:
-            from engine.persistent_orchestrator import PersistentOrchestrator
-            orchestrator = PersistentOrchestrator(inner_orchestrator, repo)
-        else:
-            orchestrator = inner_orchestrator
-
         # Execute: run the perturbed adapter directly against prompts for all modes
         from engine.run_orchestrator import OrchestratedResult
         runs = []
@@ -521,7 +506,7 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
             if alert:
                 print(f"  ALERT: {alert.severity.upper()} — {alert.recommendation}")
             else:
-                print(f"  No alert triggered")
+                print("  No alert triggered")
 
     # =====================================================================
     # STAGE 4: MEASUREMENT — Comparative drift analysis
@@ -590,9 +575,9 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
         print(f"  Convergence achieved:    {recovery_result_bl.is_converged}")
         print(f"  Stability:               {recovery_result_bl.signature.stability_score:.4f}")
         if recovery_success:
-            print(f"  Agent recovered to known-good state.")
+            print("  Agent recovered to known-good state.")
         else:
-            print(f"  Recovery incomplete — distance or convergence threshold not met.")
+            print("  Recovery incomplete — distance or convergence threshold not met.")
 
         # --- Persist recovery baseline ---
         if repo is not None:
@@ -622,14 +607,14 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
     redteam_results: dict[str, Any] = {}
 
     if use_redteam:
-        from engine.probe_generator import ProbeGenerator
-        from engine.semantic_analyzer import SemanticAnalyzer
-        from engine.multi_turn_prober import MultiTurnProber
-        from engine.temporal_tracker import TemporalTracker
-        from engine.canary_system import CanarySystem
-        from engine.attack_simulator import AttackSimulator
-        from engine.secure_measurement import SecureMeasurement
         from adapters.mock_adapter import MockConversationalAdapter
+        from engine.attack_simulator import AttackSimulator
+        from engine.canary_system import CanarySystem
+        from engine.multi_turn_prober import MultiTurnProber
+        from engine.probe_generator import ProbeGenerator
+        from engine.secure_measurement import SecureMeasurement
+        from engine.semantic_analyzer import SemanticAnalyzer
+        from engine.temporal_tracker import TemporalTracker
 
         # --- STAGE 6: Dynamic Probes ---
         hdr("STAGE 6: DYNAMIC PROBES")
@@ -746,7 +731,6 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
 
         prober = MultiTurnProber(adapter=conv_adapter)
 
-        probe_types = ["memory", "instruction_persistence", "coherence", "context"]
         probe_builders = {
             "memory": prober.build_memory_probe,
             "instruction_persistence": prober.build_instruction_persistence_probe,
@@ -813,7 +797,7 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
         )
         print(f"  Overall pass rate:     {canary_report.pass_rate:.4f}")
         print(f"  Authenticity score:    {canary_report.authenticity_score:.4f}")
-        print(f"  Per-type pass rates:")
+        print("  Per-type pass rates:")
         for ctype, rate in canary_report.per_type_pass_rate.items():
             status = "PASS" if rate >= 0.5 else "FAIL"
             print(f"    {ctype:20s} {rate:.2f} [{status}]")
@@ -894,49 +878,49 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
     print(f"  Scenarios tested:           {len(scenario_results)}")
     alerts_fired = sum(1 for _, (_, a) in scenario_results.items() if a is not None)
     print(f"  Compromise alerts fired:    {alerts_fired}/{len(scenario_results)}")
-    print(f"  Authentication verified:    Alpha correctly identified from 2-agent pool")
+    print("  Authentication verified:    Alpha correctly identified from 2-agent pool")
 
-    print(f"\n  Theory validation:")
+    print("\n  Theory validation:")
     if inter_agent_dist > within_dist:
-        print(f"    ✓ Different agents produce distinct geometric signatures")
+        print("    ✓ Different agents produce distinct geometric signatures")
     else:
         print(f"    ✗ Agents not sufficiently distinct (inter={inter_agent_dist:.4f} <= within={within_dist:.4f})")
 
     if baseline_alpha.is_converged and baseline_beta.is_converged:
-        print(f"    ✓ Same agent produces stable signatures across runs")
+        print("    ✓ Same agent produces stable signatures across runs")
     else:
         print(f"    ✗ Baseline convergence not achieved (alpha={baseline_alpha.is_converged}, beta={baseline_beta.is_converged})")
 
     if scenario_results:
         any_drift = any(d.drift_magnitude > 0 for d, _ in scenario_results.values())
         if any_drift:
-            print(f"    ✓ Perturbations cause measurable geometric drift")
+            print("    ✓ Perturbations cause measurable geometric drift")
         else:
-            print(f"    ✗ No measurable drift from perturbations")
+            print("    ✗ No measurable drift from perturbations")
     else:
-        print(f"    ✗ No perturbation scenarios were run")
+        print("    ✗ No perturbation scenarios were run")
 
     if scenario_results and any(d.per_dimension_drift for d, _ in scenario_results.values()):
-        print(f"    ✓ Drift decomposes into interpretable categories")
+        print("    ✓ Drift decomposes into interpretable categories")
     else:
-        print(f"    ✗ No per-dimension drift decomposition available")
+        print("    ✗ No per-dimension drift decomposition available")
 
     if summary['reducible'] > 0 and summary['irreducible'] >= 0:
-        print(f"    ✓ Computational reducibility identifies stable vs noisy metrics")
+        print("    ✓ Computational reducibility identifies stable vs noisy metrics")
     else:
-        print(f"    ✗ Reducibility analysis did not identify stable metrics")
+        print("    ✗ Reducibility analysis did not identify stable metrics")
 
     if alerts_fired > 0:
-        print(f"    ✓ Compromise detection fires on significant drift")
+        print("    ✓ Compromise detection fires on significant drift")
     else:
         print(f"    ✗ No compromise alerts fired ({alerts_fired}/{len(scenario_results)})")
 
     if worst_alert and recovery_success:
-        print(f"    ✓ Recovery re-establishes baseline within tolerance")
+        print("    ✓ Recovery re-establishes baseline within tolerance")
     elif not worst_alert:
-        print(f"    - Recovery not tested (no compromise detected)")
+        print("    - Recovery not tested (no compromise detected)")
     else:
-        print(f"    ✗ Recovery did not re-establish baseline within tolerance")
+        print("    ✗ Recovery did not re-establish baseline within tolerance")
 
     if use_redteam and redteam_results:
         hdr("RED-TEAM EVALUATION SCORECARD")
@@ -976,12 +960,12 @@ def run_pipeline(use_live: bool = False, use_persist: bool = False,
         print(f"\n  Scorecard: {passed}/{len(checks)} checks passed")
 
         if redteam_results.get("attack_detection_rates"):
-            print(f"\n  Per-attack detection rates:")
+            print("\n  Per-attack detection rates:")
             for atype, rate in redteam_results["attack_detection_rates"].items():
                 print(f"    {atype:30s} {rate:.2%}")
 
         if redteam_results.get("multi_turn_scores"):
-            print(f"\n  Multi-turn behavioral scores:")
+            print("\n  Multi-turn behavioral scores:")
             for ptype, score in redteam_results["multi_turn_scores"].items():
                 print(f"    {ptype:30s} {score:.4f}")
 

@@ -8,7 +8,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from adapters.mock_adapter import MockConversationalAdapter
-from domain.conversation import ConversationProbe, ConversationResult, ConversationTurn
+from domain.conversation import ConversationProbe, ConversationResult
 from domain.models import AgentProfile
 from engine.multi_turn_prober import MultiTurnProber
 

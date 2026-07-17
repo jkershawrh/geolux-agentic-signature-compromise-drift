@@ -6,10 +6,9 @@ from typing import Optional
 import numpy as np
 
 from adapters.interfaces import InferenceAdapter, MetricExtractor
-from domain.enums import AgentStatus, SignatureType
 from domain.geometry import GeometricSignature
 from domain.models import AgentProfile
-from engine.baseline_engine import BaselineEngine, BaselineResult
+from engine.baseline_engine import BaselineEngine
 from engine.geometric.distance import geodesic_distance
 from engine.signature_generator import SignatureGenerator
 

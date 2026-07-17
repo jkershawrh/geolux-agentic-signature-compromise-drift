@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import hashlib
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from domain.probes import ProbeCategory
 from engine.probe_generator import ProbeGenerator
-
 
 probe_seed = st.integers(min_value=0, max_value=2**31 - 1)
 probe_category = st.sampled_from(list(ProbeCategory))

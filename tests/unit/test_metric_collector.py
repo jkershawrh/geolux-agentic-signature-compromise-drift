@@ -1,8 +1,6 @@
 import subprocess
 import sys
 
-import pytest
-
 from adapters.metric_extractor import DefaultMetricExtractor
 from domain.enums import MetricDimension
 from domain.models import ControlledRun

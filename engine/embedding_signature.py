@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Union
 
@@ -104,6 +105,13 @@ class EmbeddingSignatureGenerator:
                 "need fit_shared() with multiple agents, or at least two enrollment "
                 "responses for single-agent PCA"
             )
+        warnings.warn(
+            "fit_shared() was not called — fitting the shared PCA space from a "
+            "single agent's enrollment responses. Every later baseline will reuse "
+            "this space, and cross-agent distances in it may be unreliable. Call "
+            "fit_shared() on all agents' responses before generate_baseline().",
+            stacklevel=3,
+        )
         embeddings = np.array([self._adapter.embed(r) for r in responses])
         self._shared_space = SharedEmbeddingSpace.fit(embeddings, self._n_components)
         return self._shared_space

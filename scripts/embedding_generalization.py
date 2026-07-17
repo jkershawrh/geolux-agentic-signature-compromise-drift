@@ -9,7 +9,6 @@ Usage:
 """
 from __future__ import annotations
 
-import itertools
 import os
 import sys
 from pathlib import Path
@@ -19,12 +18,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import numpy as np
 from sklearn.decomposition import PCA
 
-from adapters.metric_extractor import DefaultMetricExtractor
 from domain.models import AgentProfile
 from engine.geometric.distance import euclidean_distance
-from engine.geometric.embedding import metrics_to_vector
 from scripts.identity_validation import AGENT_DEFS, PROMPTS
-
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -345,7 +341,7 @@ def run_embedding_generalization(use_maas: bool = False) -> None:
     print("\n\n" + "=" * 65)
     print("  CROSS-MODEL TRANSFER TEST")
     print("=" * 65)
-    print(f"  Train PCA + centroids on one model, evaluate on another.")
+    print("  Train PCA + centroids on one model, evaluate on another.")
 
     source_model = MODELS[0]  # Granite
     transfer_results: dict[str, float] = {}

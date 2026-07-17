@@ -14,6 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,7 +24,6 @@ from adapters.metric_extractor import DefaultMetricExtractor
 from domain.metrics import ALL_METRIC_NAMES
 from domain.models import AgentProfile
 from engine.geometric.embedding import metrics_to_vector
-
 
 # ---------------------------------------------------------------------------
 # Prompt corpus — 30 diverse prompts
@@ -187,11 +187,7 @@ def run_study(use_maas: bool = False) -> None:
         pct = pca.explained_variance_ratio_[i] * 100
         print(f"  Component {i + 1}: {pct:.1f}% variance")
 
-    # Count effectively independent metrics
-    independent_count = n_metrics - len(
-        set(a for a, _, _ in redundant_pairs) | set(b for _, b, _ in redundant_pairs)
-    ) + len(set(a for a, _, _ in redundant_pairs) | set(b for _, b, _ in redundant_pairs)) - len(redundant_pairs)
-    # Simpler: use effective_dim from PCA as the independence measure
+    # Use effective_dim from PCA as the independence measure
     print()
     print(f"VERDICT: {effective_dim}/{n_metrics} metrics are effectively independent")
 

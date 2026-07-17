@@ -246,7 +246,6 @@ class MockConversationalAdapter:
                     content = msg["content"].lower()
                     if "my name is" in content:
                         # Extract the name
-                        idx = content.index("my name is") + len("my name is ")
                         rest = msg["content"][content.index("my name is") + len("my name is "):]
                         name = rest.split()[0].strip(".,!? ")
                         return f"You told me your name is {name}."
@@ -256,7 +255,6 @@ class MockConversationalAdapter:
                 for msg in messages:
                     content = msg["content"].lower()
                     if "from" in content and ("i'm from" in content or "i am from" in content):
-                        idx = content.index("from") + len("from ")
                         rest = msg["content"][content.index("from") + len("from "):]
                         place = rest.split(".")[0].strip(".,!? ")
                         return f"You said you are from {place}."

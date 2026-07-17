@@ -1,6 +1,4 @@
 """Contract tests verifying engine components satisfy expected interfaces."""
-import numpy as np
-import pytest
 
 from adapters.metric_extractor import DefaultMetricExtractor
 from adapters.mock_adapter import MockInferenceAdapter

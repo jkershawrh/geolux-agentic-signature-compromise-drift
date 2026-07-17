@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 from adapters.interfaces import InferenceAdapter, MetricExtractor
 from domain.enums import SignatureType
-from domain.geometry import DriftMeasurement, GeometricSignature
+from domain.geometry import GeometricSignature
 from domain.metrics import MetricMeasurement
 from domain.models import AgentProfile, ControlledRun
 from engine.perturbation_engine import PerturbationEngine

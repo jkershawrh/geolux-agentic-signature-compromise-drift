@@ -1,4 +1,3 @@
-import pytest
 
 from domain.enums import AgentStatus
 

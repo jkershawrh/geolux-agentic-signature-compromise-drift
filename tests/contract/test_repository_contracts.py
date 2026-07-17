@@ -1,7 +1,6 @@
 """Contract tests verifying repository satisfies data access patterns."""
-import pytest
 
-from domain.enums import AgentStatus, DriftCategory, SignatureType
+from domain.enums import DriftCategory, SignatureType
 from domain.geometry import DriftMeasurement, GeometricSignature
 from domain.models import AgentProfile
 

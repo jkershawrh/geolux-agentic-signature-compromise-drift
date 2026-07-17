@@ -10,25 +10,23 @@ from __future__ import annotations
 import itertools
 import os
 import sys
-import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
 from adapters.metric_extractor import DefaultMetricExtractor
-from domain.metrics import ALL_METRIC_NAMES
 from domain.models import AgentProfile
 from engine.authentication import AuthenticationEngine
 from engine.geometric.distance import euclidean_distance
 from engine.geometric.embedding import metrics_to_vector
 from engine.reducibility_analyzer import ReducibilityAnalyzer
 from engine.signature_generator import SignatureGenerator
-
 
 # ---------------------------------------------------------------------------
 # 5 Agent Definitions
@@ -313,9 +311,7 @@ def _make_heatmap(labels, fisher_matrix, output_path):
     colors_list = ["#d32f2f", "#ff9800", "#fdd835", "#66bb6a", "#2e7d32"]
     cmap = LinearSegmentedColormap.from_list("separation", colors_list, N=256)
 
-    # Mask diagonal
     display = np.copy(fisher_matrix)
-    mask = np.eye(n, dtype=bool)
 
     im = ax.imshow(display, cmap=cmap, vmin=0, vmax=6, aspect="equal")
 

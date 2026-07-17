@@ -38,9 +38,9 @@ Three semantic metrics were added to capture agent-specific behavioral patterns 
 ### Phase 3: Scalar Embedding Metrics (+3 = 35)
 
 Three scalar metrics derived from embeddings were added, using nomic-embed-text-v1-5 on MaaS for text embeddings:
-- **embedding_closing_signature**: cosine similarity of closing paragraphs to the agent's enrolled closing signature
-- **embedding_topic_adherence**: cosine similarity of response content to the agent's expected topic domain
-- **embedding_response_density**: information density measured via embedding variance
+- **embedding_closing_signature**: scalar fingerprint of the closing ~50 words (sigmoid-scaled mean of the leading embedding dimensions)
+- **embedding_topic_adherence**: cosine similarity between the prompt embedding and the response embedding
+- **embedding_response_density**: response embedding norm relative to response length (norm / sqrt(word count))
 
 **Results:**
 - EER improved from **25.1% to 22.9%**

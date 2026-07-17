@@ -15,17 +15,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
 
 from adapters.metric_extractor import DefaultMetricExtractor
 from domain.models import AgentProfile
 from engine.geometric.distance import euclidean_distance
 from engine.geometric.embedding import metrics_to_vector
 from engine.reducibility_analyzer import ReducibilityAnalyzer
-
 
 # ---------------------------------------------------------------------------
 # 15 Agent Definitions Across Industry Verticals (from expanded_study.py)
@@ -491,7 +491,7 @@ def _experiment_1_scale(agent_data, agent_ids, short_names):
     print(f"    Pairs > 2.0:         {pairs_above_2}/{len(pairs)} ({100*pairs_above_2/len(pairs):.0f}%)")
     print(f"    Pairs > 3.0:         {pairs_above_3}/{len(pairs)} ({100*pairs_above_3/len(pairs):.0f}%)")
     print()
-    print(f"  Verification Accuracy:")
+    print("  Verification Accuracy:")
     print(f"    Batch (centroid):    {batch_accuracy:.1f}%")
     print(f"    Per-run:             {per_run_accuracy:.1f}%")
 
@@ -524,7 +524,6 @@ def _experiment_2_hard_pairs(hard_pair_data):
     print("=" * 60)
 
     analyzer = ReducibilityAnalyzer()
-    from domain.metrics import ALL_METRIC_NAMES
 
     pair_results = {}
     hard_pair_defs = [
@@ -570,7 +569,6 @@ def _experiment_2_hard_pairs(hard_pair_data):
             test_centroid = mat[half:, :][:, fisher_indices].mean(axis=0)
             d_a = euclidean_distance(test_centroid, fp_a)
             d_b = euclidean_distance(test_centroid, fp_b)
-            expected_fp = fp_a if aid == aid_a else fp_b
             if aid == aid_a and d_a < d_b:
                 batch_correct += 1
             elif aid == aid_b and d_b < d_a:
@@ -921,9 +919,9 @@ def _plot_scale_heatmap(exp1_results):
 def _plot_hard_pairs(exp2_results):
     """Plot 2: Bar chart comparing hard pair metrics."""
     labels = list(exp2_results.keys())
-    ratios = [exp2_results[l]["ratio"] for l in labels]
-    batch_accs = [exp2_results[l]["batch_accuracy"] for l in labels]
-    per_run_accs = [exp2_results[l]["per_run_accuracy"] for l in labels]
+    ratios = [exp2_results[lbl]["ratio"] for lbl in labels]
+    batch_accs = [exp2_results[lbl]["batch_accuracy"] for lbl in labels]
+    per_run_accs = [exp2_results[lbl]["per_run_accuracy"] for lbl in labels]
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -1100,9 +1098,6 @@ def run_validation(use_maas: bool = False) -> None:
         print(f"  [HP {i+1}/4] Collecting {defn['name']}...")
         hard_pair_data[aid] = _collect_agent_data(adapter, agent, extractor, PROMPTS)
 
-    # Combined data for experiments that use all 15 base agents
-    all_data = {**base_agent_data, **hard_pair_data}
-
     print(f"\n  Total runs collected: {(len(AGENT_DEFS) + len(HARD_PAIRS)) * len(PROMPTS)}")
 
     # ---------------------------------------------------------------
@@ -1161,29 +1156,29 @@ def run_validation(use_maas: bool = False) -> None:
     print("#" * 60)
 
     all_ratios = list(exp1["pairwise_ratios"].values())
-    print(f"\n  Experiment 1 (Scale Test, 15 agents):")
+    print("\n  Experiment 1 (Scale Test, 15 agents):")
     print(f"    Mean Fisher ratio:     {np.mean(all_ratios):.2f}")
     print(f"    Batch accuracy:        {exp1['batch_accuracy']:.1f}%")
     print(f"    Per-run accuracy:      {exp1['per_run_accuracy']:.1f}%")
     print(f"    Pairs > 2.0:           {exp1['pairs_above_2']}/105")
     print(f"    Pairs > 3.0:           {exp1['pairs_above_3']}/105")
 
-    print(f"\n  Experiment 2 (Hard Pairs):")
+    print("\n  Experiment 2 (Hard Pairs):")
     for label, res in exp2.items():
         print(f"    {label}: ratio={res['ratio']:.2f}, batch={res['batch_accuracy']:.0f}%, per-run={res['per_run_accuracy']:.0f}%")
 
-    print(f"\n  Experiment 3 (Min-Run Sweep):")
+    print("\n  Experiment 3 (Min-Run Sweep):")
     for pair_label, sweep_data in exp3.items():
         for n_fp, mean_acc, std_acc in sweep_data:
             if not np.isnan(mean_acc):
                 print(f"    {pair_label} N={n_fp}: {mean_acc:.1f}% +/- {std_acc:.1f}%")
 
-    print(f"\n  Experiment 4 (Cross-Session Stability):")
+    print("\n  Experiment 4 (Cross-Session Stability):")
     print(f"    Same-session:   {exp4['same_session_accuracy']:.1f}%")
     print(f"    Cross-session:  {exp4['cross_session_accuracy']:.1f}%")
     print(f"    Delta:          {exp4['delta']:+.1f}%")
 
-    print(f"\n  Experiment 5 (FAR/FRR/EER):")
+    print("\n  Experiment 5 (FAR/FRR/EER):")
     print(f"    EER:            {exp5['eer']*100:.2f}%")
     print(f"    EER threshold:  {exp5['eer_threshold']:.4f}")
 

@@ -207,7 +207,6 @@ class DefaultMetricExtractor:
 
         # Instruction adherence: heuristic checks against prompt cues
         prompt_lower = run.prompt_text.lower()
-        response_lower = run.response_text.lower()
         checks_total = 0
         checks_passed = 0
 
@@ -298,7 +297,11 @@ class DefaultMetricExtractor:
             compliance = 0.5  # No markers to check
 
         # Metric 31: response_signature_phrases
-        # Hash-based trigram signature -- captures word sequence patterns
+        # Hash-based trigram signature -- captures word sequence patterns.
+        # CAVEAT: hash-bucket values are categorical, not ordinal — equal
+        # values mean identical phrasing, but distance *magnitudes* between
+        # different values carry no meaning, and the trigram mean converges
+        # toward 0.5 for long texts. Useful as an equality signal only.
         words = run.response_text.lower().split()
         if len(words) >= 3:
             trigrams = [tuple(words[i:i+3]) for i in range(len(words)-2)]
@@ -308,7 +311,9 @@ class DefaultMetricExtractor:
             signature = 0.0
 
         # Metric 32: closing_pattern
-        # Hash the last few words to capture how the agent signs off
+        # Hash the last few words to capture how the agent signs off.
+        # Same caveat as metric 31: an equality signal (same sign-off ->
+        # same value), not a distance-meaningful scalar.
         sentences = [s.strip() for s in re.split(r'[.!?]+', run.response_text.strip()) if s.strip()]
         last_sentence = sentences[-1].lower() if sentences else ""
         last_words = last_sentence.split()[-5:] if last_sentence else []

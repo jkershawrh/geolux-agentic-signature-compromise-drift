@@ -3,15 +3,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from adapters.mock_adapter import MockInferenceAdapter
 from adapters.metric_extractor import DefaultMetricExtractor
-from domain.canaries import CanaryReport, CanaryResult, CanaryType
+from adapters.mock_adapter import MockInferenceAdapter
+from domain.canaries import CanaryReport, CanaryType
 from domain.models import AgentProfile
 from engine.canary_system import CanarySystem
 

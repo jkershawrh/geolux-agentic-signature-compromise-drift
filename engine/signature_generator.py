@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from typing import Optional
 
 import numpy as np
 
@@ -9,7 +8,7 @@ from domain.enums import MetricDimension, SignatureType
 from domain.geometry import GeometricSignature
 from domain.metrics import METRIC_DEFINITIONS, MetricMeasurement
 from engine.geometric.distance import frechet_mean
-from engine.geometric.embedding import MetricVectorBuilder, metrics_to_vector
+from engine.geometric.embedding import MetricVectorBuilder
 from engine.geometric.manifold import reduce_to_manifold
 from engine.geometric.riemannian import compute_metric_tensor
 

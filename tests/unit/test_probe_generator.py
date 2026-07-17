@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from domain.probes import ProbeCategory, ProbeSet, ProbeTemplate
+from domain.probes import ProbeCategory, ProbeTemplate
 from engine.probe_generator import ProbeGenerator
 
 

@@ -4,8 +4,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from adapters.mock_adapter import MockConversationalAdapter
@@ -33,7 +31,6 @@ class TestMultiTurnContracts:
 
     def test_conversational_adapter_protocol_satisfied(self):
         """MockConversationalAdapter satisfies the ConversationalAdapter protocol."""
-        from adapters.interfaces import ConversationalAdapter
 
         adapter = MockConversationalAdapter()
         # Structural subtyping: check that execute_turn exists and is callable

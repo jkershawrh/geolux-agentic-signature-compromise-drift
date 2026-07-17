@@ -2,7 +2,6 @@
 """Evaluate and display the red/green rubric matrix across all 5 stages."""
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import yaml

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from domain.probes import GeneratedProbe, ProbeCategory, ProbeSet
+from domain.probes import GeneratedProbe, ProbeSet
 from engine.probe_generator import ProbeGenerator
 
 

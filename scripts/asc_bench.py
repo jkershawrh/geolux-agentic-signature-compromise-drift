@@ -17,14 +17,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import (
     auc,
-    confusion_matrix as sk_confusion_matrix,
     precision_recall_fscore_support,
     roc_curve,
+)
+from sklearn.metrics import (
+    confusion_matrix as sk_confusion_matrix,
 )
 
 from adapters.metric_extractor import DefaultMetricExtractor
@@ -32,7 +35,6 @@ from domain.models import AgentProfile
 from engine.geometric.distance import euclidean_distance
 from engine.geometric.embedding import metrics_to_vector
 from engine.reducibility_analyzer import ReducibilityAnalyzer
-
 
 # ---------------------------------------------------------------------------
 # 10 Agent Definitions across 3 verticals

@@ -17,21 +17,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import numpy as np
 
 from adapters.metric_extractor import DefaultMetricExtractor
-from domain.models import AgentProfile
+from engine.embedding_signature import EmbeddingSignatureGenerator
 from engine.geometric.distance import euclidean_distance
 from engine.geometric.embedding import metrics_to_vector
-from engine.embedding_signature import EmbeddingSignatureGenerator, compute_eer
 from engine.reducibility_analyzer import ReducibilityAnalyzer
 from scripts.identity_validation import (
     AGENT_DEFS,
+    FISHER_TOP_K,
     HARD_PAIRS,
     PROMPTS,
-    FISHER_TOP_K,
-    PHASE1_MODEL,
     _build_adapter_and_agent,
-    _collect_agent_data,
 )
-
 
 # ---------------------------------------------------------------------------
 # EER computation helper
@@ -146,7 +142,11 @@ def run_embedding_validation(use_maas: bool = False) -> None:
     agg_fisher = {name: 0.0 for name in ALL_METRIC_NAMES}
     pairs = list(itertools.combinations(agent_ids, 2))
     for ai, aj in pairs:
-        ratios = analyzer.compute_fisher_ratios(metric_data[ai], metric_data[aj])
+        # Select metrics on the train split only — using the full data here
+        # would leak test information into feature selection.
+        ratios = analyzer.compute_fisher_ratios(
+            metric_data[ai][:n_train], metric_data[aj][:n_train]
+        )
         for m, v in ratios.items():
             agg_fisher[m] += v / len(pairs)
     sorted_metrics = sorted(agg_fisher.items(), key=lambda x: -x[1])
@@ -471,7 +471,7 @@ def run_embedding_validation(use_maas: bool = False) -> None:
     print(f"  {'EER:':25s} {metric_eer*100:>12.1f}%  {embed_eer*100:>14.1f}%  {combined_eer*100:>8.1f}%")
 
     if hard_pair_results:
-        print(f"\n  Hard Pairs:")
+        print("\n  Hard Pairs:")
         for label, res in hard_pair_results.items():
             print(f"    {label:25s}  metric={res['metric']:.2f}  embedding={res['embedding']:.2f}  combined={res['combined']:.2f}")
 
@@ -549,12 +549,21 @@ def run_embedding_validation(use_maas: bool = False) -> None:
     # ---------------------------------------------------------------
     # PCA Component Sweep
     # ---------------------------------------------------------------
+    from sklearn.decomposition import PCA
+
     print("\n  PCA Component Sweep:")
     print(f"  {'n_comp':>8s} {'EER':>8s} {'Per-Run':>8s}")
+    # Train-split embeddings, grouped by agent (n_train rows per agent, in
+    # agent_ids order) — the centroid indexing below relies on this layout.
+    train_emb_matrix = np.array([
+        emb_gen._adapter.embed(t)
+        for aid in agent_ids
+        for t in response_texts[aid][:n_train]
+    ])
     for n_comp_target in [5, 10, 15, 20, 30, 50]:
-        n_comp_actual = min(n_comp_target, all_emb_matrix.shape[0] - 1, all_emb_matrix.shape[1])
+        n_comp_actual = min(n_comp_target, train_emb_matrix.shape[0] - 1, train_emb_matrix.shape[1])
         pca_sweep = PCA(n_components=n_comp_actual)
-        all_proj_sweep = pca_sweep.fit_transform(all_emb_matrix)
+        all_proj_sweep = pca_sweep.fit_transform(train_emb_matrix)
         # Build per-agent centroids in this PCA space
         sweep_centroids = {}
         sidx = 0
@@ -612,7 +621,8 @@ def run_embedding_validation(use_maas: bool = False) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from sklearn.metrics import roc_curve, auc as sk_auc
+    from sklearn.metrics import auc as sk_auc
+    from sklearn.metrics import roc_curve
 
     y_true_roc = np.concatenate([np.zeros(len(embed_genuine)), np.ones(len(embed_impostor))])
     y_scores_roc = np.concatenate([embed_genuine, embed_impostor])
@@ -636,7 +646,7 @@ def run_embedding_validation(use_maas: bool = False) -> None:
     plt.savefig(str(output_dir / "embedding_roc.png"), dpi=150)
     plt.close()
     print(f"\n  Embedding ROC AUC: {auc_id:.3f}")
-    print(f"  ROC saved to visualizations/benchmark/embedding_roc.png")
+    print("  ROC saved to visualizations/benchmark/embedding_roc.png")
 
     # Verdict
     print("\n  " + "-" * 50)

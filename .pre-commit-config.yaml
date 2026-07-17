@@ -14,20 +14,23 @@ repos:
     rev: v0.5.0
     hooks:
       - id: ruff
-        args: [--select, "E,F,I", --fix]
+        # Rule selection lives in pyproject.toml [tool.ruff.lint]
+        args: [--fix]
 
   - repo: local
     hooks:
+      # `python` resolves inside the activated venv on all platforms
+      # (`.venv/bin/` does not exist on Windows, where it is `Scripts/`).
       - id: pytest
         name: pytest
-        entry: .venv/bin/python -m pytest tests/ --ignore=tests/bdd -q --tb=line
+        entry: python -m pytest tests/ --ignore=tests/bdd -q --tb=line
         language: system
         pass_filenames: false
         always_run: true
 
       - id: behave
         name: behave
-        entry: .venv/bin/python -m behave tests/bdd/features/ --no-capture
+        entry: python -m behave tests/bdd/features/ --no-capture
         language: system
         pass_filenames: false
         always_run: true

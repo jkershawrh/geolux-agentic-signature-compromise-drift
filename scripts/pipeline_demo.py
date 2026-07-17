@@ -12,18 +12,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import numpy as np
 
 from adapters.metric_extractor import DefaultMetricExtractor
-from adapters.mock_adapter import MockInferenceAdapter, RealisticMockAdapter
-from domain.enums import AgentStatus
+from adapters.mock_adapter import RealisticMockAdapter
 from domain.identity import (
     EnforcementAction,
     EnrollmentRequest,
     MonitoringFrequency,
     MonitoringPolicy,
 )
-from domain.models import AgentProfile
 from engine.identity_pipeline import IdentityPipeline
 from engine.signature_generator import SignatureGenerator
 
@@ -99,23 +96,23 @@ def run_demo(use_maas: bool = False) -> None:
     report_alpha = pipeline.certify(agent_alpha)
 
     print(f"\n  Certification result: {report_alpha.status.value.upper()}")
-    print(f"\n  Self-consistency:")
+    print("\n  Self-consistency:")
     for i, d in enumerate(report_alpha.self_consistency_distances):
         print(f"    batch pair {i+1}: distance={d:.4f}")
     print(f"    passed: {report_alpha.self_consistency_passed}")
 
-    print(f"\n  Discriminability:")
+    print("\n  Discriminability:")
     if report_alpha.discriminability_scores:
         for peer, d in report_alpha.discriminability_scores.items():
             print(f"    vs {peer}: Cohen's d={d:.4f}")
     else:
-        print(f"    No peers to compare (first agent on this model)")
+        print("    No peers to compare (first agent on this model)")
     print(f"    passed: {report_alpha.discriminability_passed}")
 
     print(f"\n  Canary compliance: {report_alpha.canary_pass_rate:.2%}")
     print(f"    passed: {report_alpha.canary_passed}")
 
-    print(f"\n  Multi-turn coherence:")
+    print("\n  Multi-turn coherence:")
     for ptype, score in report_alpha.multi_turn_scores.items():
         print(f"    {ptype:30s} {score:.4f}")
     print(f"    passed: {report_alpha.multi_turn_passed}")
@@ -124,7 +121,7 @@ def run_demo(use_maas: bool = False) -> None:
     print(f"    passed: {report_alpha.attack_passed}")
 
     if report_alpha.failure_reasons:
-        print(f"\n  Failure reasons:")
+        print("\n  Failure reasons:")
         for reason in report_alpha.failure_reasons:
             print(f"    - {reason}")
 
@@ -140,10 +137,10 @@ def run_demo(use_maas: bool = False) -> None:
         print(f"  Signature assigned: {baseline_sig.signature_id[:16]}...")
         print(f"  Embedding dim:     {baseline_sig.embedding_dimension}")
         print(f"  Stability:         {baseline_sig.stability_score:.4f}")
-        print(f"  Agent status:      ACTIVE")
+        print("  Agent status:      ACTIVE")
     else:
-        print(f"  Certification failed — no signature assigned")
-        print(f"  Cannot proceed to monitoring")
+        print("  Certification failed — no signature assigned")
+        print("  Cannot proceed to monitoring")
         return
 
     # =====================================================================
@@ -212,15 +209,15 @@ def run_demo(use_maas: bool = False) -> None:
         new_sig = pipeline.assign(agent_alpha, recert_report, recert_report.baseline_signature)
         if new_sig:
             print(f"\n  New signature assigned: {new_sig.signature_id[:16]}...")
-            print(f"  Agent restored to ACTIVE")
+            print("  Agent restored to ACTIVE")
 
     # =====================================================================
     # SUMMARY
     # =====================================================================
     hdr("PIPELINE DEMO COMPLETE")
-    print(f"  Enrollment:     2 agents enrolled")
+    print("  Enrollment:     2 agents enrolled")
     print(f"  Certification:  {report_alpha.status.value}")
-    print(f"  Normal ops:     5 runs, no drift")
+    print("  Normal ops:     5 runs, no drift")
     print(f"  Compromise:     {strikes} strikes before suspension")
     print(f"  Recovery:       {'SUCCESS' if recert_report.all_checks_passed else 'FAILED'}")
     print()

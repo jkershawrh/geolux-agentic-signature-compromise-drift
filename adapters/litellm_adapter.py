@@ -11,7 +11,6 @@ import requests
 from domain.enums import RunStatus
 from domain.models import AgentProfile, ControlledRun
 
-
 AVAILABLE_MODELS = [
     "granite-2b-cpu",
     "granite-3-2-8b-instruct-cpu",

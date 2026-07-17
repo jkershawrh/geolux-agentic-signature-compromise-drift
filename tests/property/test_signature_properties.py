@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from hypothesis import given, settings, assume
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from engine.geometric.distance import (
@@ -9,7 +9,6 @@ from engine.geometric.distance import (
     geodesic_distance,
 )
 from engine.geometric.riemannian import compute_metric_tensor
-
 
 float_vector = st.lists(
     st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),

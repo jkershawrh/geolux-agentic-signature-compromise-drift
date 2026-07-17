@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -201,6 +200,24 @@ class AuditEventRow(Base):
     payload_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     previous_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     event_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class SignatureEnvelopeRow(Base):
+    """Sealed (encrypted + commitment-hashed) copy of a baseline signature.
+
+    Written at assign() time; used to detect tampering with the plaintext
+    baseline in asc_signatures.
+    """
+
+    __tablename__ = "asc_signature_envelopes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    envelope_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    agent_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    signature_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    encrypted_vector: Mapped[str] = mapped_column(Text, nullable=False)
+    commitment_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 

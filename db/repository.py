@@ -15,17 +15,23 @@ from db.models import (
     MetricRow,
     MonitoringEventRow,
     ReducibilityRow,
-    RubricScoreRow,
     RunRow,
+    SignatureEnvelopeRow,
     SignatureRow,
     StudyRow,
 )
-from domain.enums import AgentStatus, RubricState
+from domain.enums import AgentStatus
 from domain.geometry import DriftMeasurement, GeometricSignature
-from domain.identity import CertificationReport, CertificationStatus, MonitoringEvent, EnforcementAction
+from domain.identity import (
+    CertificationReport,
+    CertificationStatus,
+    EnforcementAction,
+    MonitoringEvent,
+)
 from domain.metrics import MetricMeasurement
 from domain.models import AgentProfile, ControlledRun
 from domain.reducibility import ReducibilityClassification
+from domain.security import SecureSignatureEnvelope
 
 
 class Repository:
@@ -67,6 +73,17 @@ class Repository:
         row = self._session.query(AgentRow).filter_by(agent_id=agent_id).first()
         if row:
             row.status = status.value
+            row.updated_at = datetime.now(timezone.utc)
+            self._session.commit()
+
+    def get_strike_count(self, agent_id: str) -> int:
+        row = self._session.query(AgentRow).filter_by(agent_id=agent_id).first()
+        return row.strike_count if row else 0
+
+    def set_strike_count(self, agent_id: str, count: int) -> None:
+        row = self._session.query(AgentRow).filter_by(agent_id=agent_id).first()
+        if row:
+            row.strike_count = count
             row.updated_at = datetime.now(timezone.utc)
             self._session.commit()
 
@@ -199,6 +216,35 @@ class Repository:
         )
         self._session.add(row)
         self._session.commit()
+
+    def save_envelope(self, envelope: SecureSignatureEnvelope) -> None:
+        row = SignatureEnvelopeRow(
+            envelope_id=envelope.envelope_id,
+            agent_id=envelope.agent_id,
+            signature_id=envelope.signature_id,
+            encrypted_vector=envelope.encrypted_vector,
+            commitment_hash=envelope.commitment_hash,
+            created_at=envelope.created_at,
+        )
+        self._session.add(row)
+        self._session.commit()
+
+    def get_envelope_for_signature(self, signature_id: str) -> SecureSignatureEnvelope | None:
+        row = (
+            self._session.query(SignatureEnvelopeRow)
+            .filter_by(signature_id=signature_id)
+            .first()
+        )
+        if not row:
+            return None
+        return SecureSignatureEnvelope(
+            envelope_id=row.envelope_id,
+            agent_id=row.agent_id,
+            signature_id=row.signature_id,
+            encrypted_vector=row.encrypted_vector,
+            commitment_hash=row.commitment_hash,
+            created_at=row.created_at,
+        )
 
     def get_baseline_signature(self, agent_id: str) -> GeometricSignature | None:
         row = (

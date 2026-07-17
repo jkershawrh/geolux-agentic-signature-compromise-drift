@@ -20,10 +20,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
 
 from adapters.metric_extractor import DefaultMetricExtractor
 from domain.models import AgentProfile
@@ -32,7 +33,6 @@ from engine.geometric.distance import euclidean_distance
 from engine.geometric.embedding import metrics_to_vector
 from engine.reducibility_analyzer import ReducibilityAnalyzer
 from engine.signature_generator import SignatureGenerator
-
 
 # ---------------------------------------------------------------------------
 # 15 Agent Definitions Across Industry Verticals
@@ -927,15 +927,15 @@ def run_expanded_study(use_maas: bool = False) -> None:
     total_pairs = len(fisher_vals)
     model_dists = list(p2["pair_distances"].values())
 
-    print(f"\n  Phase 1 (15-agent discriminability):")
+    print("\n  Phase 1 (15-agent discriminability):")
     print(f"    Accuracy:              {p1['accuracy']:.1f}%")
     print(f"    Mean Fisher ratio:     {np.mean(fisher_vals):.2f}")
     print(f"    Pairs > 3.0:           {above_3}/{total_pairs}")
 
-    print(f"\n  Phase 2 (cross-model stability):")
+    print("\n  Phase 2 (cross-model stability):")
     print(f"    Mean model distance:   {np.mean(model_dists):.4f}")
 
-    print(f"\n  Phase 3 (CPU vs GPU):")
+    print("\n  Phase 3 (CPU vs GPU):")
     print(f"    Centroid distance:     {p3['centroid_dist']:.4f}")
     print(f"    Fisher separation:     {p3['fisher_sep']:.2f}")
 
